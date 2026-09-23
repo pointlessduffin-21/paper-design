@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Install the Paper design system into Claude Code on this machine.
-#   curl-free:  git clone git@github.com:pointlessduffin-21/claude-paper-design.git && ./claude-paper-design/install.sh
+#   git clone git@github.com:pointlessduffin-21/paper-design.git ~/paper-design && ~/paper-design/install.sh
 # Safe to re-run: it updates in place.
 set -euo pipefail
 
-REPO="pointlessduffin-21/claude-paper-design"
+REPO="pointlessduffin-21/paper-design"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 MD="$CLAUDE_DIR/CLAUDE.md"
@@ -30,6 +30,11 @@ PY
 echo "✓ Paper rule in $MD"
 
 # 2. The plugin (skill + kit), from GitHub so `claude plugin update` keeps it current.
+# Machines set up before the repo was renamed still point at the old name;
+# re-add so updates come from the right place.
+if claude plugin marketplace list 2>/dev/null | grep -q "claude-paper-design"; then
+    claude plugin marketplace remove yeems214 >/dev/null
+fi
 if claude plugin marketplace list 2>/dev/null | grep -q "yeems214"; then
     claude plugin marketplace update yeems214 >/dev/null
 else
