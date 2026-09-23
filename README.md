@@ -8,19 +8,19 @@ The reference is https://yeems214.xyz.
 ## Install on a machine
 
 ```bash
-git clone git@github.com:pointlessduffin-21/claude-paper-design.git ~/claude-paper-design
-~/claude-paper-design/install.sh
+git clone git@github.com:pointlessduffin-21/paper-design.git ~/paper-design
+~/paper-design/install.sh
 ```
 
 This repo is **private**, so the machine needs GitHub access as `pointlessduffin-21`: an SSH key,
 or run `gh auth login` first. On a machine without an SSH key, clone over HTTPS instead:
 
 ```bash
-git clone https://github.com/pointlessduffin-21/claude-paper-design.git ~/claude-paper-design
+git clone https://github.com/pointlessduffin-21/paper-design.git ~/paper-design
 ```
 
 Inside Agents you can run the same lines with a `!` prefix (for example
-`! ~/claude-paper-design/install.sh`).
+`! ~/paper-design/install.sh`).
 
 Then restart Agents. The script is safe to re-run. It does two things:
 
@@ -32,22 +32,22 @@ Then restart Agents. The script is safe to re-run. It does two things:
 If you only want the plugin, run these inside Agents:
 
 ```
-/plugin marketplace add pointlessduffin-21/claude-paper-design
+/plugin marketplace add pointlessduffin-21/paper-design
 /plugin install paper-design@yeems214
 ```
 
 ## Update
 
 ```bash
-cd ~/claude-paper-design && git pull && ./install.sh
+cd ~/paper-design && git pull && ./install.sh
 ```
 
 ## Layout
 
 ```
-.claude-plugin/marketplace.json          marketplace "yeems214"
+.plugin/marketplace.json          marketplace "yeems214"
 plugins/paper-design/
-  .claude-plugin/plugin.json
+  .plugin/plugin.json
   skills/paper-design/SKILL.md           the rules
   skills/paper-design/kit/               paper.css · tool.css · paper.js · scenes-kit.js
                                          tailwind-preset.js · template.html
