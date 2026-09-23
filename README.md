@@ -12,6 +12,16 @@ git clone git@github.com:pointlessduffin-21/claude-paper-design.git ~/claude-pap
 ~/claude-paper-design/install.sh
 ```
 
+This repo is **private**, so the machine needs GitHub access as `pointlessduffin-21`: an SSH key,
+or run `gh auth login` first. On a machine without an SSH key, clone over HTTPS instead:
+
+```bash
+git clone https://github.com/pointlessduffin-21/claude-paper-design.git ~/claude-paper-design
+```
+
+Inside Claude Code you can run the same lines with a `!` prefix (for example
+`! ~/claude-paper-design/install.sh`).
+
 Then restart Claude Code. The script is safe to re-run. It does two things:
 
 1. Adds the "always use Paper" rule to `~/.claude/CLAUDE.md`, between
