@@ -1,0 +1,14 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "yeems214",
+  "description": "Roel Abarca's personal Claude Code plugins",
+  "owner": { "name": "Roel Abarca" },
+  "plugins": [
+    {
+      "name": "paper-design",
+      "description": "The Paper house design system for every website and web-tool front end: tokens, components, Three.js paper scenes, and the rules for using them",
+      "source": "./plugins/paper-design",
+      "category": "design"
+    }
+  ]
+}

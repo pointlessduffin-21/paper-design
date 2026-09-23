@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Page — Project</title>
+    <meta name="description" content="One sentence.">
+    <meta name="theme-color" content="#f5f2eb">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="paper.css">
+    <!-- web tools only: <link rel="stylesheet" href="tool.css"> -->
+</head>
+<body>
+    <a class="skip" href="#main">Skip to content</a>
+    <!-- Decorative 3D layer. The page must be complete without it. -->
+    <canvas class="scene" id="scene" aria-hidden="true"></canvas>
+
+    <header class="nav" id="nav">
+        <a class="nav__logo" href="/">Name <small>tagline</small></a>
+        <button class="nav__toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navLinks"
+            aria-label="Open menu"><span></span><span></span></button>
+        <nav class="nav__links" id="navLinks" aria-label="Primary">
+            <a href="#" aria-current="page">Home</a>
+            <a href="#">Work</a>
+            <a class="nav__cta" href="mailto:hello@example.com">Get in touch</a>
+        </nav>
+    </header>
+
+    <main id="main">
+        <section class="page-hero page-hero--stage">
+            <div class="wrap">
+                <p class="eyebrow">Short label</p>
+                <h1 class="display">Plain words, <em>one accent</em></h1>
+                <p class="lead">One or two sentences that say what this is and who it is for.</p>
+                <div class="btns" style="margin-top:28px">
+                    <a class="btn btn--ink" href="#">Primary action <span class="arrow">→</span></a>
+                    <a class="btn" href="#">Secondary</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="wrap">
+                <div class="section-head section-head--split">
+                    <div>
+                        <p class="eyebrow" data-reveal>Section label</p>
+                        <h2 class="h2" data-reveal>Section <em>title</em></h2>
+                    </div>
+                    <p class="lead" data-reveal>What this section is for.</p>
+                </div>
+                <div class="grid grid--3">
+                    <article class="card" data-reveal><h3 class="h3">Card</h3><p>Body copy.</p></article>
+                    <article class="card" data-reveal style="--d:.06s"><h3 class="h3">Card</h3><p>Body copy.</p></article>
+                    <article class="card" data-reveal style="--d:.12s"><h3 class="h3">Card</h3><p>Body copy.</p></article>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="wrap">
+            <span>© <span id="year">2026</span> Name</span>
+            <nav aria-label="Footer"><a href="#">Link</a></nav>
+        </div>
+    </footer>
+
+    <script src="paper.js"></script>
+    <!-- main.js:  import { mountScene, field } from './scenes-kit.js';
+                   mountScene(document.getElementById('scene'), field);
+         External, never inline — the CSP is script-src 'self'. -->
+    <script type="module" src="main.js"></script>
+</body>
+</html>
