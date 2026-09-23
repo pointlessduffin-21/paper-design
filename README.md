@@ -1,6 +1,6 @@
-# claude-paper-design
+# paper-design
 
-My **Paper** design system for Claude Code: the default look for every website and web-tool front
+My **Paper** design system for Agents: the default look for every website and web-tool front
 end I build. It has a paper ground, ink type and one vermilion accent, set in Instrument Serif,
 Inter and JetBrains Mono, mobile-first, with high-fidelity Three.js scenes rendered onto the paper.
 The reference is https://yeems214.xyz.
@@ -19,17 +19,17 @@ or run `gh auth login` first. On a machine without an SSH key, clone over HTTPS 
 git clone https://github.com/pointlessduffin-21/claude-paper-design.git ~/claude-paper-design
 ```
 
-Inside Claude Code you can run the same lines with a `!` prefix (for example
+Inside Agents you can run the same lines with a `!` prefix (for example
 `! ~/claude-paper-design/install.sh`).
 
-Then restart Claude Code. The script is safe to re-run. It does two things:
+Then restart Agents. The script is safe to re-run. It does two things:
 
 1. Adds the "always use Paper" rule to `~/.claude/CLAUDE.md`, between
    `<!-- paper-design:start/end -->` markers, so a re-run replaces it instead of duplicating it.
 2. Adds this repo as the `yeems214` plugin marketplace and installs `paper-design@yeems214`,
    which provides the skill and its kit.
 
-If you only want the plugin, run these inside Claude Code:
+If you only want the plugin, run these inside Agents:
 
 ```
 /plugin marketplace add pointlessduffin-21/claude-paper-design
