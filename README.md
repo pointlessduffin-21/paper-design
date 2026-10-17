@@ -54,7 +54,9 @@ plugins/paper-design/
   skills/paper-design/kit/               paper.css · tool.css · paper.js · paper-policy.mjs
                                          scenes-kit.js · tailwind-preset.js · vendor/
                                          template.html · login.html · fixture.html · main.js
-global/CLAUDE.paper.md                   the rule block install.sh puts in ~/.claude/CLAUDE.md
+global/CLAUDE.paper.md                   the Paper rule block install.sh puts in ~/.claude/CLAUDE.md
+global/CLAUDE.workflow.md                the push/handoff rule block (Haiku 5.5 pushes and writes
+                                         CHANGELOG.md / HANDOFF.md); any CLAUDE.<name>.md here is installed
 scripts/check-kit.mjs                    node --test scripts/check-kit.mjs
 install.sh
 ```

@@ -8,15 +8,18 @@ REPO="pointlessduffin-21/paper-design"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 MD="$CLAUDE_DIR/CLAUDE.md"
-START='<!-- paper-design:start -->'
-END='<!-- paper-design:end -->'
 
 command -v claude >/dev/null || { echo "claude CLI not found — install Claude Code first." >&2; exit 1; }
 mkdir -p "$CLAUDE_DIR"
 
-# 1. The global rule, between markers so a re-run replaces rather than duplicates it.
+# 1. The global rules. Every global/CLAUDE.<name>.md becomes a block between
+#    <!-- <name>:start/end --> markers, so a re-run replaces it rather than duplicating it.
+#    CLAUDE.paper.md keeps the legacy "paper-design" markers.
 touch "$MD"
-python3 - "$MD" "$HERE/global/CLAUDE.paper.md" "$START" "$END" <<'PY'
+for block in "$HERE"/global/CLAUDE.*.md; do
+    name="$(basename "$block" .md)"; name="${name#CLAUDE.}"
+    [ "$name" = "paper" ] && name="paper-design"
+    python3 - "$MD" "$block" "<!-- $name:start -->" "<!-- $name:end -->" <<'PY'
 import sys, re
 md, block_path, start, end = sys.argv[1:]
 text = open(md).read()
@@ -27,7 +30,8 @@ else:
     text = (text.rstrip() + "\n\n" if text.strip() else "") + block + "\n"
 open(md, "w").write(text)
 PY
-echo "✓ Paper rule in $MD"
+    echo "✓ $name rule in $MD"
+done
 
 # 2. The plugin (skill + kit), from GitHub so `claude plugin update` keeps it current.
 # Machines set up before the repo was renamed still point at the old name;
