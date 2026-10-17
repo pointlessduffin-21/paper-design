@@ -8,25 +8,34 @@
      - device tier (LOW): phones / coarse pointers / <=4 cores get
        MeshStandardMaterial, 1024 shadow maps, DPR cap 1.5
      - quality ladder that stops descending when a cut does not help
-     - prefers-reduced-motion: time stops, scene only answers scroll
+     - prefers-reduced-motion and data-paper-motion="reduce": a still
+       frame. Time and the scroll camera stay put. The canvas still fades in
+     - data-scene="hero" (hero and login): the scene keeps moving while
+       its hero section is on screen. Other scenes sleep 1.2s after input
+     - the hero section leaving the viewport, a hidden tab, or a faded
+       canvas pauses the loop. It resumes when the hero comes back
+     - data-paper-effects="reduce": shadows off, canvas hidden in CSS
+     - large frame deltas are clamped to 50ms so a backgrounded tab
+       cannot jump the camera
+     - a second WebGL context on the page is refused
      - hidden tab / faded-out canvas: the loop sleeps
-     - no WebGL: the canvas stays hidden; the page must be complete
-       without it
+     - no WebGL or a lost context: the canvas stays hidden; the page
+       must be complete without it. dispose() releases the GPU resources
 
-   Usage (bundler):
-     import { mountScene, field } from './scenes-kit.js';
-     mountScene(document.getElementById('scene'), field);
+   Usage:
+     import { mountScene, field, desk } from './scenes-kit.js';
+     mountScene(canvas, canvas.dataset.sceneKind === 'desk' ? desk : field);
+   field is the hero banner. desk is the sign-in still life.
+   data-fade="hero" fades the canvas across one viewport of scroll.
 
-   Static sites (no bundler): vendor Three.js and rewrite the three
-   imports below to relative paths, e.g. './vendor/three/three.module.min.js',
-   and in the vendored add-ons replace `from 'three'` the same way.
-   Never load Three from a CDN via an importmap — it forces
-   script-src 'unsafe-inline'.
+   Three.js is vendored next to this file (vendor/three.module.min.js,
+   MIT). Hero and login pages import this module directly. No CDN and
+   no inline import map.
    ============================================================ */
 
-import * as THREE from 'three';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import * as THREE from './vendor/three.module.min.js';
+import { RoomEnvironment } from './vendor/RoomEnvironment.js';
+import { RoundedBoxGeometry } from './vendor/RoundedBoxGeometry.js';
 
 const PAPER = new THREE.Color('#f5f2eb');
 const PAPER_HI = new THREE.Color('#fbf9f4');
@@ -147,6 +156,40 @@ function field({ scene, camera, low, state }) {
         mesh.setColorAt(i, col);
     }
     scene.add(mesh);
+
+    /* A few larger sheets sit in the open right of the banner on a wide
+       viewport. Phones keep the field alone. Core count still chooses the
+       material and the instance count. */
+    const sheets = [];
+    const wideBanner = !window.matchMedia('(max-width: 760px)').matches;
+    if (wideBanner) {
+        const specs = [
+            { size: [3.2, 0.08, 4.2], at: [3.2, 1.0, -0.2], rot: 0.22, color: PAPER_HI },
+            { size: [2.4, 0.08, 3.1], at: [4.8, 1.2, 1.6], rot: -0.3, color: PAPER },
+            { size: [0.85, 0.5, 0.85], at: [2.2, 0.7, 2.0], rot: 0.4, color: INK }
+        ];
+        specs.forEach((spec) => {
+            const sheet = new THREE.Mesh(
+                new RoundedBoxGeometry(spec.size[0], spec.size[1], spec.size[2], 2, 0.04),
+                paperMaterial(spec.color)
+            );
+            sheet.position.set(spec.at[0], spec.at[1], spec.at[2]);
+            sheet.rotation.y = spec.rot;
+            sheet.castShadow = true;
+            sheet.receiveShadow = true;
+            scene.add(sheet);
+            sheets.push({ mesh: sheet, base: spec.at[1] });
+        });
+        const seal = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.22, 0.22, 0.05, 24),
+            paperMaterial(ACCENT, { roughness: 0.4 })
+        );
+        seal.position.set(4.0, 1.45, 0.5);
+        seal.castShadow = true;
+        scene.add(seal);
+        sheets.push({ mesh: seal, base: 1.45 });
+    }
+
     addGround(scene, 0, 0.14);
     const key = addLights(scene, low, 30);
     key.position.set(-18, 34, 14);
@@ -211,6 +254,76 @@ function field({ scene, camera, low, state }) {
                 m[o + 12] = x; m[o + 13] = 0; m[o + 14] = z; m[o + 15] = 1;
             }
             mesh.instanceMatrix.needsUpdate = true;
+            sheets.forEach((sheet, index) => {
+                sheet.mesh.position.y = sheet.base + Math.sin(t * 0.45 + index) * 0.05;
+            });
+        }
+    };
+}
+
+/* ------------------------------------------------------------
+   DESK — sign-in. A short stack of sheets and one vermilion seal.
+   It sits to the left on a wide screen so the form card stays clear.
+   ------------------------------------------------------------ */
+function desk({ scene, camera, low, state }) {
+    const group = new THREE.Group();
+    const specs = [
+        { size: [3.1, 0.08, 4.1], at: [0.2, 0.16, 0], rot: -0.42, color: PAPER_HI },
+        { size: [2.7, 0.08, 3.5], at: [0.55, 0.34, 0.15], rot: -0.12, color: PAPER },
+        { size: [2.1, 0.08, 2.7], at: [0.15, 0.52, -0.1], rot: 0.22, color: PAPER_LO }
+    ];
+    specs.forEach((spec) => {
+        const sheet = new THREE.Mesh(
+            new RoundedBoxGeometry(spec.size[0], spec.size[1], spec.size[2], 2, 0.03),
+            paperMaterial(spec.color)
+        );
+        sheet.position.set(spec.at[0], spec.at[1], spec.at[2]);
+        sheet.rotation.y = spec.rot;
+        sheet.castShadow = true;
+        sheet.receiveShadow = true;
+        group.add(sheet);
+    });
+    const seal = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.34, 0.34, 0.07, low ? 16 : 32),
+        paperMaterial(ACCENT, { roughness: 0.38 })
+    );
+    seal.position.set(0.85, 0.66, 0.35);
+    seal.castShadow = true;
+    group.add(seal);
+    const clip = new THREE.Mesh(
+        new RoundedBoxGeometry(0.16, 0.42, 1.05, 2, 0.04),
+        paperMaterial(INK)
+    );
+    clip.position.set(-1.15, 0.42, 0.7);
+    clip.rotation.y = 0.3;
+    clip.castShadow = true;
+    group.add(clip);
+    scene.add(group);
+    addGround(scene, 0, 0.28);
+    const key = addLights(scene, low, 10);
+    key.position.set(-5, 9, 5);
+    scene.fog = new THREE.Fog(PAPER, 16, 42);
+    const look = new THREE.Vector3();
+
+    return {
+        update(t) {
+            const narrow = state.aspect < 1;
+            const bob = Math.sin(t * 0.5) * 0.03;
+            group.rotation.y = Math.sin(t * 0.32) * 0.12;
+            /* Wide: the stack fills the open left column, below the headline.
+               Narrow: it sits in the .login-stage band between the copy and the form. */
+            if (narrow) {
+                group.scale.setScalar(1.1);
+                group.position.set(-0.85, 1.62 + bob, 0);
+                look.set(-0.7, 1.5, 0);
+                camera.position.set(-0.55, 5.6, 10.5);
+            } else {
+                group.scale.setScalar(1.2);
+                group.position.set(0.4, bob, 0);
+                look.set(2.8, 1.8, 0);
+                camera.position.set(1.2, 4.2, 12);
+            }
+            camera.lookAt(look);
         }
     };
 }
@@ -227,13 +340,31 @@ function field({ scene, camera, low, state }) {
  *                     pointerActive, aspect }
  */
 export function mountScene(canvas, make) {
-    if (!canvas || !make) return;
+    const idle = { dispose() {}, wake() {} };
+    function showFallback() {
+        if (!canvas) return;
+        canvas.classList.remove('is-ready');
+        canvas.dataset.sceneState = 'unavailable';
+        const fallback = document.querySelector('[data-scene-fallback]');
+        if (fallback) fallback.hidden = false;
+    }
+    if (!canvas || !make) return idle;
+
+    const host = window;
+    host.__paperWebGL = host.__paperWebGL || { n: 0 };
+    if (host.__paperWebGL.n >= 1) {
+        canvas.dataset.sceneState = 'skipped';
+        return idle;
+    }
+    host.__paperWebGL.n += 1;
 
     const mqReduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const low = LOW;
+    const rootEl = document.documentElement;
     /* "hero" pages fade the scene out as the hero scrolls away and stop
        rendering once it is gone; the rest keep it as a dimmed ground. */
     const fadeMode = canvas.dataset.fade || 'dim';
+    const heroScene = canvas.dataset.scene === 'hero';
 
     let renderer;
     try {
@@ -244,7 +375,9 @@ export function mountScene(canvas, make) {
             failIfMajorPerformanceCaveat: true
         });
     } catch (e) {
-        return;     // no WebGL: the page is complete without us
+        host.__paperWebGL.n = Math.max(0, host.__paperWebGL.n - 1);
+        showFallback();
+        return idle;     // no WebGL: the page is complete without us
     }
 
     const dprCap = low ? 1.5 : 2;
@@ -260,7 +393,8 @@ export function mountScene(canvas, make) {
     const scene = new THREE.Scene();
     scene.background = PAPER;
     const pmrem = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = envTex;
     pmrem.dispose();
 
     const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 400);
@@ -272,7 +406,68 @@ export function mountScene(canvas, make) {
     };
     const target = { hp: 0, sp: 0, px: 0, py: 0 };
 
-    const view = make({ THREE, scene, camera, renderer, low, state });
+    let view;
+    try {
+        view = make({ THREE, scene, camera, renderer, low, state });
+    } catch (e) {
+        renderer.dispose();
+        if (envTex) envTex.dispose();
+        host.__paperWebGL.n = Math.max(0, host.__paperWebGL.n - 1);
+        showFallback();
+        return idle;
+    }
+
+    let disposed = false;
+    let running = false;
+    let frameId = 0;
+    let last = 0;
+    let t = 0;
+    let dirty = true;
+    let shown = false;
+    let lastActivity = 0;
+    let ro = null;
+    let heroVisible = true;
+    let heroObserver = null;
+    const IDLE_GRACE = 1200;
+
+    function motionOff() {
+        return mqReduced.matches || rootEl.dataset.paperMotion === 'reduce';
+    }
+    function effectsOff() {
+        return rootEl.dataset.paperEffects === 'reduce';
+    }
+    function setQuality(label) {
+        canvas.dataset.sceneQuality = label;
+        const note = document.querySelector('[data-scene-quality-note]');
+        if (note) note.textContent = label === 'full' ? '' : 'Simplified graphics';
+    }
+    setQuality('full');
+
+    function shadowsOn(rungNow) {
+        const on = !effectsOff() && rungNow < 2;
+        if (renderer.shadowMap.enabled !== on) {
+            renderer.shadowMap.enabled = on;
+            scene.traverse((o) => { if (o.material) o.material.needsUpdate = true; });
+        }
+    }
+
+    function stopLoop() {
+        running = false;
+        if (frameId) cancelAnimationFrame(frameId);
+        frameId = 0;
+        last = 0;
+    }
+
+    function wake() {
+        if (disposed || document.hidden || effectsOff() || !heroVisible) return;
+        dirty = true;
+        lastActivity = performance.now();
+        if (!running) {
+            running = true;
+            last = 0;
+            frameId = requestAnimationFrame(frame);
+        }
+    }
 
     /* ---- sizing: measure the canvas, which CSS pins to the large
        viewport so a mobile URL bar sliding in and out never resizes the
@@ -296,8 +491,7 @@ export function mountScene(canvas, make) {
         wake();
     }
 
-    window.addEventListener('scroll', readScroll, { passive: true });
-    window.addEventListener('pointermove', (e) => {
+    function onPointerMove(e) {
         if (e.pointerType === 'touch') return;
         state.rawPX = (e.clientX / window.innerWidth) * 2 - 1;
         state.rawPY = (e.clientY / window.innerHeight) * 2 - 1;
@@ -305,54 +499,99 @@ export function mountScene(canvas, make) {
         target.py = state.rawPY;
         state.pointerActive = true;
         wake();
-    }, { passive: true });
-    document.addEventListener('pointerleave', () => { state.pointerActive = false; });
+    }
+    function onPointerLeave() { state.pointerActive = false; }
+    function onVisibility() {
+        if (document.hidden) stopLoop();
+        else wake();
+    }
+    function onContextLost(e) {
+        e.preventDefault();
+        stopLoop();
+        canvas.style.opacity = '0';
+        showFallback();
+    }
+    let rung = 0;
+    function onPreference() {
+        stopLoop();
+        shadowsOn(rung);
+        wake();
+    }
+    const attrObserver = new MutationObserver(onPreference);
 
-    if ('ResizeObserver' in window) new ResizeObserver(resize).observe(canvas);
-    else window.addEventListener('resize', resize);
+    window.addEventListener('scroll', readScroll, { passive: true });
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    document.addEventListener('pointerleave', onPointerLeave);
+    if ('ResizeObserver' in window) {
+        ro = new ResizeObserver(resize);
+        ro.observe(canvas);
+    } else {
+        window.addEventListener('resize', resize);
+    }
+    document.addEventListener('visibilitychange', onVisibility);
+    canvas.addEventListener('webglcontextlost', onContextLost);
+    mqReduced.addEventListener('change', onPreference);
+    attrObserver.observe(rootEl, { attributes: true, attributeFilter: ['data-paper-motion', 'data-paper-effects'] });
 
-    /* ---- quality ladder: step down only while it actually helps */
-    let rung = 0, sampleT = 0, sampleN = 0, sampleSum = 0, lastMean = Infinity, warm = 0;
+    const hero = document.querySelector('.page-hero, .hero');
+    if (hero && 'IntersectionObserver' in window) {
+        heroObserver = new IntersectionObserver((entries) => {
+            heroVisible = entries.some((entry) => entry.isIntersecting);
+            canvas.dataset.sceneVisible = heroVisible ? 'true' : 'false';
+            if (!heroVisible) stopLoop();
+            else wake();
+        }, { threshold: 0 });
+        heroObserver.observe(hero);
+    }
+
+    /* ---- quality ladder: step down when frames stay slower than 33ms
+       across a 2s window, and stop if a cut does not help. */
+    let sampleT = 0, sampleN = 0, sampleSum = 0, lastMean = Infinity, warm = 0;
     function adapt(dtMs) {
+        if (motionOff() || effectsOff()) return;
         warm += dtMs;
-        if (warm < 2500 || rung >= 3) return;
+        if (warm < 2000 || rung >= 3) return;
         sampleSum += dtMs; sampleN++; sampleT += dtMs;
-        if (sampleT < 1500) return;
+        if (sampleT < 2000) return;
         const mean = sampleSum / sampleN;
         sampleT = 0; sampleN = 0; sampleSum = 0;
-        if (mean < 24) return;
+        if (mean < 33) return;
         if (mean > lastMean * 0.92 && rung > 0) { rung = 3; return; }  // cut did nothing: stop
         lastMean = mean;
         rung++;
-        if (rung === 1) dpr = Math.max(1, dpr * 0.75);
-        if (rung === 2) {
-            renderer.shadowMap.enabled = false;
-            scene.traverse((o) => { if (o.material) o.material.needsUpdate = true; });
-            dpr = 1;
+        if (rung === 1) {
+            dpr = Math.max(1, dpr * 0.75);
+            setQuality('reduced');
         }
-        if (rung === 3) dpr = 0.75;
+        if (rung === 2) {
+            dpr = 1;
+            setQuality('reduced');
+        }
+        if (rung === 3) {
+            dpr = 0.75;
+            setQuality('minimal');
+        }
+        shadowsOn(rung);
         renderer.setPixelRatio(dpr);
         resize();
     }
 
-    let running = false, last = 0, t = 0, dirty = true, shown = false;
-
-    function wake() {
-        dirty = true;
-        if (!running && !document.hidden) {
-            running = true;
-            last = 0;
-            requestAnimationFrame(frame);
-        }
-    }
-
     function frame(now) {
-        if (document.hidden) { running = false; return; }
-        const reduced = mqReduced.matches;
-        const dtMs = last ? Math.min(100, now - last) : 16;
+        frameId = 0;
+        if (disposed || document.hidden || effectsOff()) { running = false; return; }
+        const reduced = motionOff();
+        const dtMs = last ? Math.min(50, now - last) : 16;
         last = now;
         const dt = dtMs / 1000;
         if (!reduced) t += dt;
+        /* A reduced-motion scene is a still frame at the rest camera.
+           Scroll and the pointer do not travel it. */
+        if (reduced) {
+            target.hp = 0;
+            target.sp = 0;
+            target.px = 0;
+            target.py = 0;
+        }
 
         const k = 1 - Math.exp(-dt * (reduced ? 30 : 4));
         state.hp += (target.hp - state.hp) * k;
@@ -371,41 +610,67 @@ export function mountScene(canvas, make) {
 
         const settling = Math.abs(target.hp - state.hp) + Math.abs(target.sp - state.sp) +
             Math.abs(target.px - state.px) + Math.abs(target.py - state.py) > 0.0005;
+        const since = now - lastActivity;
+        /* Hero and login scenes stay in motion while the tab is visible.
+           Every other scene settles, then sleeps. Reduced motion never
+           travels: the canvas fade is CSS opacity. */
+        const decorate = !reduced && (heroScene || since < IDLE_GRACE);
 
-        if (opacity > 0.005 && (!reduced || dirty || settling)) {
+        if (opacity > 0.005 && (dirty || settling || decorate)) {
             view.update(t, reduced ? 0 : dt);
             renderer.render(scene, camera);
             dirty = false;
             if (!shown) {
                 shown = true;
                 canvas.classList.add('is-ready');
-                /* The CSS fade-in owns the first second; after that, the
-                   inline opacity above is driven by scroll. */
-                setTimeout(() => { canvas.style.transition = 'none'; }, 1300);
+                canvas.dataset.sceneState = 'ready';
+                /* CSS fade is --dur-enter (480ms). Taking over sooner
+                   would clip it, including the reduced-motion fade. */
+                const FADE_HOLD = 520;
+                setTimeout(() => { if (!disposed) canvas.style.transition = 'none'; }, FADE_HOLD);
             }
             if (!reduced) adapt(dtMs);
         }
 
-        /* Reduced motion, or faded out entirely: sleep until something
-           (scroll, pointer, resize) wakes the loop again. */
-        if ((reduced && !settling) || (opacity <= 0.005 && !settling)) {
+        /* Sleep once the camera has settled and nobody is interacting.
+           Reduced motion never keeps a decorative loop alive. */
+        if ((reduced && !settling && !dirty) || (opacity <= 0.005 && !settling) || (!decorate && !settling && !dirty)) {
             running = false;
             return;
         }
-        requestAnimationFrame(frame);
+        frameId = requestAnimationFrame(frame);
     }
 
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) wake(); });
-    canvas.addEventListener('webglcontextlost', (e) => {
-        e.preventDefault();
-        canvas.classList.remove('is-ready');
-        canvas.style.opacity = '0';
-    });
-    mqReduced.addEventListener('change', wake);
+    function dispose() {
+        if (disposed) return;
+        disposed = true;
+        stopLoop();
+        window.removeEventListener('scroll', readScroll);
+        window.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerleave', onPointerLeave);
+        document.removeEventListener('visibilitychange', onVisibility);
+        window.removeEventListener('resize', resize);
+        canvas.removeEventListener('webglcontextlost', onContextLost);
+        mqReduced.removeEventListener('change', onPreference);
+        if (ro) ro.disconnect();
+        if (heroObserver) heroObserver.disconnect();
+        attrObserver.disconnect();
+        scene.traverse((o) => {
+            if (o.geometry && o.geometry.dispose) o.geometry.dispose();
+            if (!o.material) return;
+            const mats = Array.isArray(o.material) ? o.material : [o.material];
+            mats.forEach((m) => { if (m && m.dispose) m.dispose(); });
+        });
+        if (envTex && envTex.dispose) envTex.dispose();
+        renderer.dispose();
+        host.__paperWebGL.n = Math.max(0, host.__paperWebGL.n - 1);
+    }
 
+    shadowsOn(0);
     readScroll();
     resize();
     wake();
+    return { dispose, wake };
 }
 
-export { THREE, LOW, PAPER, PAPER_HI, PAPER_LO, INK, ACCENT, clamp, lerp, smooth, hash, paperMaterial, addLights, addGround, field, RoundedBoxGeometry };
+export { THREE, LOW, PAPER, PAPER_HI, PAPER_LO, INK, ACCENT, clamp, lerp, smooth, hash, paperMaterial, addLights, addGround, field, desk, RoundedBoxGeometry };

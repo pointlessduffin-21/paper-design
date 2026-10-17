@@ -1,6 +1,6 @@
 {
   "name": "paper-design",
-  "version": "1.0.0",
-  "description": "The Paper house design system: paper ground, ink type, one vermilion accent, Instrument Serif + Inter + JetBrains Mono, mobile-first, high-fidelity Three.js scenes on paper. Ships drop-in CSS/JS kit files.",
+  "version": "1.3.0",
+  "description": "The Paper house design system: paper ground, ink type, one vermilion accent, Instrument Serif + Inter + JetBrains Mono, mobile-first, high-fidelity Three.js scenes on paper. Animation is mandatory (fades under reduced motion). Ships the kit, GUIDELINES.md, and a principle gap audit.",
   "author": { "name": "Roel Abarca" }
 }
