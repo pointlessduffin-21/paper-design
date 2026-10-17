@@ -157,14 +157,16 @@ function field({ scene, camera, low, state }) {
     }
     scene.add(mesh);
 
-    /* A few larger sheets sit in the banner, beside the type on desktop.
-       Phones keep the field alone. */
+    /* A few larger sheets sit in the open right of the banner on a wide
+       viewport. Phones keep the field alone. Core count still chooses the
+       material and the instance count. */
     const sheets = [];
-    if (!low) {
+    const wideBanner = !window.matchMedia('(max-width: 760px)').matches;
+    if (wideBanner) {
         const specs = [
-            { size: [2.6, 0.07, 3.4], at: [8.4, 1.15, -1.4], rot: 0.18, color: PAPER_HI },
-            { size: [1.9, 0.07, 2.5], at: [9.6, 1.4, 1.15], rot: -0.22, color: PAPER },
-            { size: [0.7, 0.45, 0.7], at: [7.1, 0.85, 2.2], rot: 0.4, color: INK }
+            { size: [3.2, 0.08, 4.2], at: [3.2, 1.0, -0.2], rot: 0.22, color: PAPER_HI },
+            { size: [2.4, 0.08, 3.1], at: [4.8, 1.2, 1.6], rot: -0.3, color: PAPER },
+            { size: [0.85, 0.5, 0.85], at: [2.2, 0.7, 2.0], rot: 0.4, color: INK }
         ];
         specs.forEach((spec) => {
             const sheet = new THREE.Mesh(
@@ -182,10 +184,10 @@ function field({ scene, camera, low, state }) {
             new THREE.CylinderGeometry(0.22, 0.22, 0.05, 24),
             paperMaterial(ACCENT, { roughness: 0.4 })
         );
-        seal.position.set(8.7, 1.62, 0.15);
+        seal.position.set(4.0, 1.45, 0.5);
         seal.castShadow = true;
         scene.add(seal);
-        sheets.push({ mesh: seal, base: 1.62 });
+        sheets.push({ mesh: seal, base: 1.45 });
     }
 
     addGround(scene, 0, 0.14);
@@ -282,7 +284,7 @@ function desk({ scene, camera, low, state }) {
         group.add(sheet);
     });
     const seal = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.26, 0.26, 0.06, low ? 12 : 28),
+        new THREE.CylinderGeometry(0.34, 0.34, 0.07, low ? 16 : 32),
         paperMaterial(ACCENT, { roughness: 0.38 })
     );
     seal.position.set(0.85, 0.66, 0.35);
@@ -297,10 +299,10 @@ function desk({ scene, camera, low, state }) {
     clip.castShadow = true;
     group.add(clip);
     scene.add(group);
-    addGround(scene, 0, 0.18);
+    addGround(scene, 0, 0.28);
     const key = addLights(scene, low, 10);
     key.position.set(-5, 9, 5);
-    scene.fog = new THREE.Fog(PAPER, 14, 36);
+    scene.fog = new THREE.Fog(PAPER, 16, 42);
     const look = new THREE.Vector3();
 
     return {
@@ -308,12 +310,19 @@ function desk({ scene, camera, low, state }) {
             const narrow = state.aspect < 1;
             const bob = Math.sin(t * 0.5) * 0.03;
             group.rotation.y = Math.sin(t * 0.32) * 0.12;
-            /* Wide: park the stack in the open left column. Narrow: drop it
-               into the stage band under the copy. */
-            group.position.set(narrow ? 0 : -2.8, (narrow ? -0.85 : 0) + bob, narrow ? 0.4 : 0);
-            look.set(narrow ? 0.15 : -0.4, narrow ? 1.35 : 0.45, 0);
-            const dist = narrow ? 14.5 : 11;
-            camera.position.set(look.x + dist * 0.18, narrow ? 6.4 : 4.4, dist);
+            /* Wide: the stack fills the open left column, below the headline.
+               Narrow: it sits in the .login-stage band between the copy and the form. */
+            if (narrow) {
+                group.scale.setScalar(1.1);
+                group.position.set(-0.85, 1.62 + bob, 0);
+                look.set(-0.7, 1.5, 0);
+                camera.position.set(-0.55, 5.6, 10.5);
+            } else {
+                group.scale.setScalar(1.2);
+                group.position.set(0.4, bob, 0);
+                look.set(2.8, 1.8, 0);
+                camera.position.set(1.2, 4.2, 12);
+            }
             camera.lookAt(look);
         }
     };

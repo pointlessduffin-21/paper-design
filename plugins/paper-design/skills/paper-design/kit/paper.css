@@ -587,6 +587,13 @@ main, .footer { position: relative; z-index: 1; }
 @media (max-width: 760px) {
     .page-hero--stage { padding-bottom: 38vh; }
 }
+/* On a phone the sign-in form would cover the still life, so the stage
+   is a clear band between the sentence and the card. */
+.login-stage { height: 0; }
+@media (max-width: 899px) {
+    .login-stage { height: 15vh; }
+    .page-hero--stage:has(.login-stage) { padding-bottom: clamp(48px, 10vw, 96px); }
+}
 .scene-fallback {
     position: absolute;
     z-index: 1;

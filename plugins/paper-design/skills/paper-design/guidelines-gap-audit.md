@@ -35,14 +35,14 @@ The guide's server, safety-system, and lab-study requirements stay doc-only on p
 | 25 | Gestalt Common Region | implemented | Panes and the fieldset “P-204 measurement” name their scope. The review dialog says the target stays P-204. | Batch scope is described in the receipt, not chosen from a live selection set. |
 | 26 | Gestalt Uniform Connectedness | partial | The fixture relationship list states the P-118 → P-204 edge as verified and P-077 as disconnected. No decorative lines. | No drawn connector, because a line without a matching DOM edge would invent a relationship. There is no graph source. |
 | 27 | Affordance | implemented | Controls are buttons and links. `.card` does not set a pointer cursor. The canvas is `aria-hidden`. `kit/paper.css`, `kit/template.html`. | No drag handle, so the non-drag alternative is not exercised. |
-| 28 | Feedback | partial | Phase labels, field errors, `#paper-status`, and the receipt. `kit/paper.js`. | No timeout, duplicate-from-the-server, reconnect, or late-telemetry harness. |
+| 28 | Feedback | partial | Phase labels, field errors, `#paper-status`, and the receipt. `data-paper-form` sets `noValidate` so the summary and `aria-invalid` run. `kit/paper.js`. | No timeout, duplicate-from-the-server, reconnect, or late-telemetry harness. |
 | 29 | Anchoring Effect | partial | The margin note names the equipment specification and the 5–7 bar range next to 6.2 bar. | No control that switches the time window, and no separate “recommendation” versus “current” editor. |
 | 30 | Endowment Effect | partial | Export this view writes the visible rows to `ledger.txt`. Restore default puts the authored order back. `kit/paper.js`. | No organisation-default policy, duplicate workspace, or account export. |
 | 31 | Framing Effect | partial | The receipt uses 18 succeeded and 2 failed, not a lone percentage. Confirmation copy says Submit request, not a virtue label. | No percentage that declares its denominator and window, because the fixture does not show one. |
 
 ## What this pass changed
 
-- Hero banner (`field`) keeps the paper column field and, on a desktop tier, adds a few sheets plus one vermilion seal. Sign-in uses a separate still life (`desk`) that sits clear of the form card.
+- Hero banner (`field`) keeps the paper column field and, on a wide viewport, adds a few sheets plus one vermilion seal. Sign-in uses a separate still life (`desk`): left of the card on a wide screen, and in `.login-stage` between the sentence and the card on a phone.
 - `prefers-reduced-motion` and `?motion=reduce` hold a still frame: scene time stops and the scroll camera returns to rest. Page fades and hover fills stay.
 - The loop pauses when the hero section leaves the viewport, the tab is hidden, or the canvas has faded out. `?webgl=off`, a missing context, or a lost context shows `[data-scene-fallback]` without pushing the layout.
 - The ledger gained named views, a local export, restore, a relationship list, and a tab-scoped draft with discard.

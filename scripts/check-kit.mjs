@@ -273,6 +273,10 @@ test('pages expose the guidelines and have no duplicate ids or positive tabindex
     assert.match(paperJs, /sessionStorage/);
     assert.match(paperJs, /function writeDraft/);
     assert.match(paperJs, /function applyPreset/);
+    assert.match(paperJs, /noValidate = true/);
+    assert.match(login, /class="login-stage"/);
+    assert.match(paperCss, /\.login-stage \{[^}]*height:\s*0/);
+    assert.match(scenes, /wideBanner/);
     assert.match(skill, /data-scene-kind="desk"/);
     for (const doc of [skill, guidelines, claude]) {
         assert.match(doc, /does not follow the skill/);

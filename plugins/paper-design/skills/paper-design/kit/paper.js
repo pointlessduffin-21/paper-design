@@ -405,6 +405,9 @@
     });
 
     /* ---------- local forms: errors stay associated with fields ---------- */
+    document.querySelectorAll('form[data-paper-form]').forEach(function (form) {
+        form.noValidate = true;
+    });
     document.addEventListener('submit', function (e) {
         var form = e.target;
         if (!form || !form.hasAttribute || !form.hasAttribute('data-paper-form')) return;

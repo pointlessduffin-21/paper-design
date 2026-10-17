@@ -210,7 +210,7 @@ Markup:
 - `data-scene="hero"` keeps the loop running while the hero section is on screen.
 - `data-fade="hero"` fades the canvas across one viewport of scroll, then the loop sleeps. Scrolling back wakes it.
 - `data-scene-kind="desk"` is the sign-in stack. Omit it for the hero field.
-- The sign-in card is an opaque `.pane`. The desk sits to the left on a wide screen and in the stage band on a phone. The form stays readable and usable with the scene, with reduced motion, and with WebGL off.
+- The sign-in card is an opaque `.pane`. The desk sits in the open left column on a wide screen. On a phone, `.login-stage` is a clear band between the sentence and the card, and the desk sits in that band. The form stays readable and usable with the scene, with reduced motion, and with WebGL off.
 - **Render onto the paper.** `setClearColor(PAPER)`, `scene.background = PAPER`, `Fog(PAPER, …)`, `NeutralToneMapping`, sRGB. No new hues: paper, ink, and one vermilion seal.
 - **Materials:** `MeshPhysicalMaterial` on a desktop tier, `MeshStandardMaterial` on phones, coarse pointers, and ≤4 cores. Soft shadows land on a `ShadowMaterial` ground.
 - **Budget:** DPR cap 2 on the desktop tier and 1.5 on the phone tier. If frames stay slower than 33ms for 2 seconds, the ladder steps down and then stops. Deltas clamp at 50ms. The phone field uses fewer instances and skips the extra sheets.
