@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Ledger — Paper kit fixture</title>
+    <meta name="description" content="Operational fixture for the Paper kit: keyboard, narrow layout, and reduced motion.">
+    <meta name="theme-color" content="#f5f2eb">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="paper.css">
+    <link rel="stylesheet" href="tool.css">
+</head>
+<body>
+    <a class="skip" href="#main">Skip to content</a>
+    <div id="paper-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="app">
+        <aside class="app__side">
+            <a class="app__brand" href="template.html">Paper</a>
+            <p class="app__navlabel">Ledger</p>
+            <nav class="app__nav" aria-label="Sections">
+                <a href="#queue" aria-current="page">Work queue</a>
+                <a href="#evidence">Evidence</a>
+                <a href="#review">Review</a>
+            </nav>
+        </aside>
+
+        <div class="app__main" id="main">
+            <header class="app__top">
+                <div>
+                    <p class="eyebrow">Site A · Shift 2</p>
+                    <h1 class="app__title">Pump <em>P-204</em></h1>
+                </div>
+                <div class="toolbar">
+                    <button type="button" class="btn btn--sm" data-paper-reduce-motion aria-pressed="false">Reduce motion</button>
+                    <button type="button" class="btn btn--sm" data-paper-reduce-effects aria-pressed="false">Reduce effects</button>
+                </div>
+            </header>
+
+            <div class="banner banner--warn" role="status">
+                <p><strong>Draft saved.</strong> Production configuration unchanged. <time datetime="2026-10-17T14:32:00Z">2026-10-17T14:32:00Z</time></p>
+            </div>
+
+            <div class="workspace" style="margin-top:24px">
+                <section class="pane" id="queue" aria-labelledby="queue-title">
+                    <div class="pane__head">
+                        <h2 class="pane__title" id="queue-title">Work queue</h2>
+                        <div class="toolbar">
+                            <button type="button" class="btn btn--ink btn--sm" data-paper-dialog="command-review">Inspect P-204</button>
+                            <button type="button" class="btn btn--sm" disabled>Isolate</button>
+                            <p class="disabled-reason">Isolate stays unavailable until the interlock is released by an authorised operator.</p>
+                        </div>
+                    </div>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="Asset ledger, scrolls horizontally when needed">
+                        <table class="table table--stack" data-paper-sort>
+                            <caption>Three pumps in the fixture</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col"><button type="button" data-sort="asset">Asset</button></th>
+                                    <th scope="col">State</th>
+                                    <th scope="col"><button type="button" data-sort="pressure" data-sort-type="number">Pressure</button></th>
+                                    <th scope="col">Data</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td data-label="Asset">P-204</td>
+                                    <td data-label="State"><span class="status-critical">Critical · High pressure</span></td>
+                                    <td class="num" data-label="Pressure" data-value="6.2">6.2 bar</td>
+                                    <td data-label="Data">Stale · <time datetime="2026-10-17T14:20:00Z">14:20 UTC</time></td>
+                                </tr>
+                                <tr>
+                                    <td data-label="Asset">P-118</td>
+                                    <td data-label="State"><span class="badge badge--ok">Running</span></td>
+                                    <td class="num" data-label="Pressure" data-value="4.1">4.1 bar</td>
+                                    <td data-label="Data">Current · <time datetime="2026-10-17T14:31:00Z">14:31 UTC</time></td>
+                                </tr>
+                                <tr>
+                                    <td data-label="Asset">P-077</td>
+                                    <td data-label="State"><span class="badge">Offline telemetry</span></td>
+                                    <td class="num" data-label="Pressure" data-value="">Unavailable</td>
+                                    <td data-label="Data">Disconnected</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <aside class="inspector pane" id="evidence" aria-label="Asset inspector">
+                    <h2 class="pane__title">Inspector · P-204</h2>
+                    <div class="metric" style="margin-top:12px">
+                        <p class="metric__label">Pressure</p>
+                        <p class="metric__value">6.2 <span class="metric__unit">bar</span></p>
+                        <p class="metric__meta">Stale · source <time datetime="2026-10-17T14:20:00Z">2026-10-17T14:20:00Z</time></p>
+                        <p class="margin-note">Threshold 5–7 bar, from the named equipment specification. Not a recommendation to change it.</p>
+                    </div>
+                    <dl class="kv" style="margin-top:16px">
+                        <dt>Process</dt><dd>Running</dd>
+                        <dt>Telemetry</dt><dd>Offline</dd>
+                        <dt>Command</dt><dd>None pending</dd>
+                    </dl>
+                    <details class="disclosure">
+                        <summary>Advanced diagnostics</summary>
+                        <p class="hint">Raw payloads stay here. Severity and freshness stay in the summary above.</p>
+                    </details>
+                </aside>
+            </div>
+
+            <section class="pane" id="review" style="margin-top:24px" aria-labelledby="review-title">
+                <h2 class="pane__title" id="review-title">Calibration draft</h2>
+                <p>3 of 5 required checks complete. Safety verification is still required.</p>
+                <progress aria-label="Required checks" max="5" value="3"></progress>
+
+                <form data-paper-form data-paper-local style="margin-top:18px">
+                    <div class="error-summary" hidden>
+                        <strong>Check the highlighted field.</strong>
+                        <ul><li><a href="#reading">Enter the pressure reading before saving.</a></li></ul>
+                    </div>
+                    <fieldset class="sheet">
+                        <legend>P-204 measurement</legend>
+                        <div class="field">
+                            <label class="label" for="reading">Pressure reading</label>
+                            <input class="input" id="reading" name="reading" required inputmode="decimal" autocomplete="off" data-paper-number aria-describedby="reading-hint reading-error">
+                            <p class="hint" id="reading-hint">Decimal number and optional unit, as written on the sheet. This fixture does not send it anywhere.</p>
+                            <p class="error" id="reading-error" hidden>Enter a decimal number, without grouping separators.</p>
+                        </div>
+                    </fieldset>
+                    <div class="action-rule">
+                        <button type="submit" class="btn btn--ink">Save draft</button>
+                        <button type="button" class="btn" data-paper-ack="Requesting" data-paper-once>Submit request</button>
+                        <p data-paper-draft-note hidden>Draft saved at <time></time>. Nothing was sent.</p>
+                    </div>
+                </form>
+            </section>
+
+            <section class="receipt" style="margin-top:24px" aria-labelledby="receipt-title">
+                <h2 id="receipt-title">Receipt</h2>
+                <p>18 succeeded, 2 failed. The failures stay listed. A request being accepted is not physical completion.</p>
+                <ul>
+                    <li>P-118 verified.</li>
+                    <li>P-077 failed: no telemetry. Retry only this asset after it reconnects.</li>
+                </ul>
+            </section>
+
+            <section class="empty" aria-labelledby="empty-title">
+                <strong id="empty-title">No held work in this filter</strong>
+                <p>The queue above still has three assets. Clear the filter to see them all.</p>
+            </section>
+        </div>
+    </div>
+
+    <dialog class="dialog" id="command-review" aria-labelledby="dialog-title">
+        <div class="dialog__head">
+            <h2 class="dialog__title" id="dialog-title" data-paper-initial-focus>Review P-204</h2>
+        </div>
+        <div class="dialog__body">
+            <p>Target stays P-204. Submitting records a request. It does not verify the pump.</p>
+            <div class="toolbar">
+                <button type="button" class="btn btn--ink" data-paper-ack="Request accepted; verification pending" data-paper-once>Submit request</button>
+                <button type="button" class="btn" data-paper-dialog-close>Cancel review</button>
+            </div>
+        </div>
+    </dialog>
+
+    <script src="paper.js"></script>
+</body>
+</html>

@@ -45,14 +45,28 @@ cd ~/paper-design && git pull && ./install.sh
 ## Layout
 
 ```
-.plugin/marketplace.json          marketplace "yeems214"
+.claude-plugin/marketplace.json   marketplace "yeems214"
 plugins/paper-design/
-  .plugin/plugin.json
-  skills/paper-design/SKILL.md           the rules
-  skills/paper-design/kit/               paper.css · tool.css · paper.js · scenes-kit.js
-                                         tailwind-preset.js · template.html
+  .claude-plugin/plugin.json
+  skills/paper-design/SKILL.md           how to apply the kit
+  skills/paper-design/GUIDELINES.md      authoritative UI/UX rules (v1.0, 17 Oct 2026)
+  skills/paper-design/kit/               paper.css · tool.css · paper.js · paper-policy.mjs
+                                         scenes-kit.js · tailwind-preset.js
+                                         template.html · fixture.html
 global/CLAUDE.paper.md                   the rule block install.sh puts in ~/.claude/CLAUDE.md
+scripts/check-kit.mjs                    node --test scripts/check-kit.mjs
 install.sh
+```
+
+`GUIDELINES.md` is the authoritative UI/UX design-engineering ruleset. `SKILL.md` maps it onto
+the kit. Where they disagree, the guidelines win. The kit keeps the paper, ink, and vermilion
+identity; contrast-corrected status colours, solid sheets, and the motion rules are recorded
+in `SKILL.md`.
+
+Check the kit with:
+
+```bash
+node --test scripts/check-kit.mjs
 ```
 
 To change the design system, edit the files under `plugins/paper-design/`, bump `version` in

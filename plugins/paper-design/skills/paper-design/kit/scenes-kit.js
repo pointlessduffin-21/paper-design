@@ -8,10 +8,17 @@
      - device tier (LOW): phones / coarse pointers / <=4 cores get
        MeshStandardMaterial, 1024 shadow maps, DPR cap 1.5
      - quality ladder that stops descending when a cut does not help
-     - prefers-reduced-motion: time stops, scene only answers scroll
+     - prefers-reduced-motion and data-paper-motion="reduce": time stops;
+       the scene still answers scroll, then the loop sleeps
+     - data-paper-effects="reduce": shadows off, canvas hidden in CSS
+     - idle: no continuous decorative requestAnimationFrame. The loop
+       runs during scroll or for 1.2s after pointer activity, then sleeps
+     - large frame deltas are clamped to 50ms so a backgrounded tab
+       cannot jump the camera
+     - a second WebGL context on the page is refused
      - hidden tab / faded-out canvas: the loop sleeps
-     - no WebGL: the canvas stays hidden; the page must be complete
-       without it
+     - no WebGL or a lost context: the canvas stays hidden; the page
+       must be complete without it. dispose() releases the GPU resources
 
    Usage (bundler):
      import { mountScene, field } from './scenes-kit.js';
@@ -227,10 +234,20 @@ function field({ scene, camera, low, state }) {
  *                     pointerActive, aspect }
  */
 export function mountScene(canvas, make) {
-    if (!canvas || !make) return;
+    const idle = { dispose() {}, wake() {} };
+    if (!canvas || !make) return idle;
+
+    const host = window;
+    host.__paperWebGL = host.__paperWebGL || { n: 0 };
+    if (host.__paperWebGL.n >= 1) {
+        canvas.dataset.sceneState = 'skipped';
+        return idle;
+    }
+    host.__paperWebGL.n += 1;
 
     const mqReduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const low = LOW;
+    const rootEl = document.documentElement;
     /* "hero" pages fade the scene out as the hero scrolls away and stop
        rendering once it is gone; the rest keep it as a dimmed ground. */
     const fadeMode = canvas.dataset.fade || 'dim';
@@ -244,7 +261,9 @@ export function mountScene(canvas, make) {
             failIfMajorPerformanceCaveat: true
         });
     } catch (e) {
-        return;     // no WebGL: the page is complete without us
+        host.__paperWebGL.n = Math.max(0, host.__paperWebGL.n - 1);
+        canvas.dataset.sceneState = 'unavailable';
+        return idle;     // no WebGL: the page is complete without us
     }
 
     const dprCap = low ? 1.5 : 2;
@@ -260,7 +279,8 @@ export function mountScene(canvas, make) {
     const scene = new THREE.Scene();
     scene.background = PAPER;
     const pmrem = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = envTex;
     pmrem.dispose();
 
     const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 400);
@@ -272,7 +292,66 @@ export function mountScene(canvas, make) {
     };
     const target = { hp: 0, sp: 0, px: 0, py: 0 };
 
-    const view = make({ THREE, scene, camera, renderer, low, state });
+    let view;
+    try {
+        view = make({ THREE, scene, camera, renderer, low, state });
+    } catch (e) {
+        renderer.dispose();
+        if (envTex) envTex.dispose();
+        host.__paperWebGL.n = Math.max(0, host.__paperWebGL.n - 1);
+        canvas.dataset.sceneState = 'unavailable';
+        return idle;
+    }
+
+    let disposed = false;
+    let running = false;
+    let frameId = 0;
+    let last = 0;
+    let t = 0;
+    let dirty = true;
+    let shown = false;
+    let lastActivity = 0;
+    let ro = null;
+    const IDLE_GRACE = 1200;
+
+    function motionOff() {
+        return mqReduced.matches || rootEl.dataset.paperMotion === 'reduce';
+    }
+    function effectsOff() {
+        return rootEl.dataset.paperEffects === 'reduce';
+    }
+    function setQuality(label) {
+        canvas.dataset.sceneQuality = label;
+        const note = document.querySelector('[data-scene-quality-note]');
+        if (note) note.textContent = label === 'full' ? '' : 'Simplified graphics';
+    }
+    setQuality('full');
+
+    function shadowsOn(rungNow) {
+        const on = !effectsOff() && rungNow < 2;
+        if (renderer.shadowMap.enabled !== on) {
+            renderer.shadowMap.enabled = on;
+            scene.traverse((o) => { if (o.material) o.material.needsUpdate = true; });
+        }
+    }
+
+    function stopLoop() {
+        running = false;
+        if (frameId) cancelAnimationFrame(frameId);
+        frameId = 0;
+        last = 0;
+    }
+
+    function wake() {
+        if (disposed || document.hidden || effectsOff()) return;
+        dirty = true;
+        lastActivity = performance.now();
+        if (!running) {
+            running = true;
+            last = 0;
+            frameId = requestAnimationFrame(frame);
+        }
+    }
 
     /* ---- sizing: measure the canvas, which CSS pins to the large
        viewport so a mobile URL bar sliding in and out never resizes the
@@ -296,8 +375,7 @@ export function mountScene(canvas, make) {
         wake();
     }
 
-    window.addEventListener('scroll', readScroll, { passive: true });
-    window.addEventListener('pointermove', (e) => {
+    function onPointerMove(e) {
         if (e.pointerType === 'touch') return;
         state.rawPX = (e.clientX / window.innerWidth) * 2 - 1;
         state.rawPY = (e.clientY / window.innerHeight) * 2 - 1;
@@ -305,51 +383,80 @@ export function mountScene(canvas, make) {
         target.py = state.rawPY;
         state.pointerActive = true;
         wake();
-    }, { passive: true });
-    document.addEventListener('pointerleave', () => { state.pointerActive = false; });
+    }
+    function onPointerLeave() { state.pointerActive = false; }
+    function onVisibility() {
+        if (document.hidden) stopLoop();
+        else wake();
+    }
+    function onContextLost(e) {
+        e.preventDefault();
+        stopLoop();
+        canvas.classList.remove('is-ready');
+        canvas.style.opacity = '0';
+        canvas.dataset.sceneState = 'unavailable';
+        const fallback = document.querySelector('[data-scene-fallback]');
+        if (fallback) fallback.hidden = false;
+    }
+    let rung = 0;
+    function onPreference() {
+        stopLoop();
+        shadowsOn(rung);
+        wake();
+    }
+    const attrObserver = new MutationObserver(onPreference);
 
-    if ('ResizeObserver' in window) new ResizeObserver(resize).observe(canvas);
-    else window.addEventListener('resize', resize);
+    window.addEventListener('scroll', readScroll, { passive: true });
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    document.addEventListener('pointerleave', onPointerLeave);
+    if ('ResizeObserver' in window) {
+        ro = new ResizeObserver(resize);
+        ro.observe(canvas);
+    } else {
+        window.addEventListener('resize', resize);
+    }
+    document.addEventListener('visibilitychange', onVisibility);
+    canvas.addEventListener('webglcontextlost', onContextLost);
+    mqReduced.addEventListener('change', onPreference);
+    attrObserver.observe(rootEl, { attributes: true, attributeFilter: ['data-paper-motion', 'data-paper-effects'] });
 
-    /* ---- quality ladder: step down only while it actually helps */
-    let rung = 0, sampleT = 0, sampleN = 0, sampleSum = 0, lastMean = Infinity, warm = 0;
+    /* ---- quality ladder: step down when frames stay slower than 33ms
+       across a 2s window, and stop if a cut does not help. */
+    let sampleT = 0, sampleN = 0, sampleSum = 0, lastMean = Infinity, warm = 0;
     function adapt(dtMs) {
+        if (motionOff() || effectsOff()) return;
         warm += dtMs;
-        if (warm < 2500 || rung >= 3) return;
+        if (warm < 2000 || rung >= 3) return;
         sampleSum += dtMs; sampleN++; sampleT += dtMs;
-        if (sampleT < 1500) return;
+        if (sampleT < 2000) return;
         const mean = sampleSum / sampleN;
         sampleT = 0; sampleN = 0; sampleSum = 0;
-        if (mean < 24) return;
+        if (mean < 33) return;
         if (mean > lastMean * 0.92 && rung > 0) { rung = 3; return; }  // cut did nothing: stop
         lastMean = mean;
         rung++;
-        if (rung === 1) dpr = Math.max(1, dpr * 0.75);
-        if (rung === 2) {
-            renderer.shadowMap.enabled = false;
-            scene.traverse((o) => { if (o.material) o.material.needsUpdate = true; });
-            dpr = 1;
+        if (rung === 1) {
+            dpr = Math.max(1, dpr * 0.75);
+            setQuality('reduced');
         }
-        if (rung === 3) dpr = 0.75;
+        if (rung === 2) {
+            dpr = 1;
+            setQuality('reduced');
+        }
+        if (rung === 3) {
+            dpr = 0.75;
+            setQuality('minimal');
+        }
+        shadowsOn(rung);
         renderer.setPixelRatio(dpr);
         resize();
     }
 
-    let running = false, last = 0, t = 0, dirty = true, shown = false;
-
-    function wake() {
-        dirty = true;
-        if (!running && !document.hidden) {
-            running = true;
-            last = 0;
-            requestAnimationFrame(frame);
-        }
-    }
-
     function frame(now) {
-        if (document.hidden) { running = false; return; }
-        const reduced = mqReduced.matches;
-        const dtMs = last ? Math.min(100, now - last) : 16;
+        frameId = 0;
+        if (disposed || document.hidden || effectsOff()) { running = false; return; }
+        const reduced = motionOff();
+        const dtMs = last ? Math.min(50, now - last) : 16;
         last = now;
         const dt = dtMs / 1000;
         if (!reduced) t += dt;
@@ -371,41 +478,61 @@ export function mountScene(canvas, make) {
 
         const settling = Math.abs(target.hp - state.hp) + Math.abs(target.sp - state.sp) +
             Math.abs(target.px - state.px) + Math.abs(target.py - state.py) > 0.0005;
+        const since = now - lastActivity;
+        const decorate = !reduced && since < IDLE_GRACE;
 
-        if (opacity > 0.005 && (!reduced || dirty || settling)) {
+        if (opacity > 0.005 && (dirty || settling || decorate)) {
             view.update(t, reduced ? 0 : dt);
             renderer.render(scene, camera);
             dirty = false;
             if (!shown) {
                 shown = true;
                 canvas.classList.add('is-ready');
-                /* The CSS fade-in owns the first second; after that, the
-                   inline opacity above is driven by scroll. */
-                setTimeout(() => { canvas.style.transition = 'none'; }, 1300);
+                canvas.dataset.sceneState = 'ready';
+                /* CSS owns the short fade-in; scroll opacity takes over after it. */
+                setTimeout(() => { if (!disposed) canvas.style.transition = 'none'; }, 260);
             }
             if (!reduced) adapt(dtMs);
         }
 
-        /* Reduced motion, or faded out entirely: sleep until something
-           (scroll, pointer, resize) wakes the loop again. */
-        if ((reduced && !settling) || (opacity <= 0.005 && !settling)) {
+        /* Sleep once the camera has settled and nobody is interacting.
+           Reduced motion never keeps a decorative loop alive. */
+        if ((reduced && !settling && !dirty) || (opacity <= 0.005 && !settling) || (!decorate && !settling && !dirty)) {
             running = false;
             return;
         }
-        requestAnimationFrame(frame);
+        frameId = requestAnimationFrame(frame);
     }
 
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) wake(); });
-    canvas.addEventListener('webglcontextlost', (e) => {
-        e.preventDefault();
-        canvas.classList.remove('is-ready');
-        canvas.style.opacity = '0';
-    });
-    mqReduced.addEventListener('change', wake);
+    function dispose() {
+        if (disposed) return;
+        disposed = true;
+        stopLoop();
+        window.removeEventListener('scroll', readScroll);
+        window.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerleave', onPointerLeave);
+        document.removeEventListener('visibilitychange', onVisibility);
+        window.removeEventListener('resize', resize);
+        canvas.removeEventListener('webglcontextlost', onContextLost);
+        mqReduced.removeEventListener('change', onPreference);
+        if (ro) ro.disconnect();
+        attrObserver.disconnect();
+        scene.traverse((o) => {
+            if (o.geometry && o.geometry.dispose) o.geometry.dispose();
+            if (!o.material) return;
+            const mats = Array.isArray(o.material) ? o.material : [o.material];
+            mats.forEach((m) => { if (m && m.dispose) m.dispose(); });
+        });
+        if (envTex && envTex.dispose) envTex.dispose();
+        renderer.dispose();
+        host.__paperWebGL.n = Math.max(0, host.__paperWebGL.n - 1);
+    }
 
+    shadowsOn(0);
     readScroll();
     resize();
     wake();
+    return { dispose, wake };
 }
 
 export { THREE, LOW, PAPER, PAPER_HI, PAPER_LO, INK, ACCENT, clamp, lerp, smooth, hash, paperMaterial, addLights, addGround, field, RoundedBoxGeometry };
