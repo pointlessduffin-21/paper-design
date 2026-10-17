@@ -55,7 +55,17 @@
                     </div>
 
                     <div class="table-wrap" tabindex="0" role="region" aria-label="Asset ledger, scrolls horizontally when needed">
-                        <table class="table table--stack" data-paper-sort>
+                        <div class="toolbar" style="margin-bottom:12px">
+                            <div class="seg" role="group" aria-label="Ledger view" data-paper-presets="ledger" aria-describedby="preset-note">
+                                <button type="button" data-paper-preset="all" aria-pressed="true">All</button>
+                                <button type="button" data-paper-preset="attention" aria-pressed="false">Needs attention</button>
+                                <button type="button" data-paper-preset="running" aria-pressed="false">Running</button>
+                            </div>
+                            <button type="button" class="btn btn--sm" data-paper-export="ledger">Export this view</button>
+                            <button type="button" class="btn btn--sm" data-paper-restore="ledger">Restore default</button>
+                        </div>
+                        <p class="hint" id="preset-note">All assets in this ledger.</p>
+                        <table class="table table--stack" id="ledger" data-paper-sort>
                             <caption>Three pumps in the fixture</caption>
                             <thead>
                                 <tr>
@@ -106,6 +116,11 @@
                         <summary>Advanced diagnostics</summary>
                         <p class="hint">Raw payloads stay here. Severity and freshness stay in the summary above.</p>
                     </details>
+                    <h3 class="pane__title" style="margin-top:18px">Relationships</h3>
+                    <ul>
+                        <li>P-118 is upstream of P-204. Verified. Direction is toward P-204.</li>
+                        <li>P-077 is disconnected. There is no edge.</li>
+                    </ul>
                 </aside>
             </div>
 
@@ -114,7 +129,7 @@
                 <p>3 of 5 required checks complete. Safety verification is still required.</p>
                 <progress aria-label="Required checks" max="5" value="3"></progress>
 
-                <form data-paper-form data-paper-local style="margin-top:18px">
+                <form id="calibration" data-paper-form data-paper-local data-paper-persist style="margin-top:18px">
                     <div class="error-summary" hidden>
                         <strong>Check the highlighted field.</strong>
                         <ul><li><a href="#reading">Enter the pressure reading before saving.</a></li></ul>
@@ -130,6 +145,7 @@
                     </fieldset>
                     <div class="action-rule">
                         <button type="submit" class="btn btn--ink">Save draft</button>
+                        <button type="button" class="btn" data-paper-discard>Discard draft</button>
                         <button type="button" class="btn" data-paper-ack="Requesting" data-paper-once>Submit request</button>
                         <p data-paper-draft-note hidden>Draft saved at <time></time>. Nothing was sent.</p>
                     </div>

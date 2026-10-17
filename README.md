@@ -50,6 +50,7 @@ plugins/paper-design/
   .claude-plugin/plugin.json
   skills/paper-design/SKILL.md           how to apply the kit
   skills/paper-design/GUIDELINES.md      authoritative UI/UX rules (v1.0, 17 Oct 2026)
+  skills/paper-design/guidelines-gap-audit.md   how the kit meets each of the 31 principles
   skills/paper-design/kit/               paper.css · tool.css · paper.js · paper-policy.mjs
                                          scenes-kit.js · tailwind-preset.js · vendor/
                                          template.html · login.html · fixture.html · main.js

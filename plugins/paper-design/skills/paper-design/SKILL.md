@@ -9,7 +9,8 @@ Every browser front end follows this system: marketing sites and web tools alike
 The reference implementation is the live portfolio, **https://yeems214.xyz**, source at
 `/root/yeems214-website/rebuild-2/`. When in doubt about material, open it and match it.
 
-**Before writing UI, read [`GUIDELINES.md`](GUIDELINES.md) in this directory and follow it.**
+**Before writing UI, read [`GUIDELINES.md`](GUIDELINES.md) and [`guidelines-gap-audit.md`](guidelines-gap-audit.md).**
+The guidelines are the rules. The audit says how this kit actually meets each of the 31 principles, and it is the honest list of what is still open.
 It is the UI/UX Design Engineering Guidelines for paper-design, v1.0, 17 October 2026,
 written from the user's 31 principles. It overrides this file and the older kit notes
 wherever they disagree. This file is how those rules map onto the existing kit.
@@ -60,17 +61,18 @@ re-type the tokens by hand.
 | File | Use |
 |---|---|
 | `GUIDELINES.md` | Authoritative rules. Read before implementing. Not copied into every site. |
+| `guidelines-gap-audit.md` | Principle-by-principle status of this kit. Read it before claiming a principle is done. |
 | `paper.css` | Tokens, base, static paper grain, nav + mobile sheet, layout, type, buttons, cards, chips, status dots, frames, hero, stats, grid, CTA, footer, reduced motion, forced colors, print |
 | `tool.css` | Web apps: app shell + sidebar, workspace/inspector, panes, metrics, toolbar, segmented control, tabs, forms, tables (stack to cards on phones), key/value, badges, banners, receipts, empty states, log, `<dialog>` (bottom sheet on phones), toasts, skeletons |
 | `paper.js` | Nav sheet (Escape, focus trap, inert page, breakpoint unlocks scroll), mandatory motion helpers (`paper.enter`, `paper.reveal`, `paper.section`, `paper.setState`), stagger cap, reduced-motion and reduced-effects settings, dialog focus return, form errors, truthful sort, tabs, footer year. No dependencies |
 | `paper-policy.mjs` | Tested motion, stagger, phase-label, and strict numeric sort helpers. `paper.js` mirrors the marked functions |
-| `scenes-kit.js` | `mountScene(canvas, make)`: the Three.js paper runtime plus helpers (`paperMaterial`, `addLights`, `addGround`) and the reference `field` scene. Returns `{ dispose, wake }`. Three.js is vendored in `vendor/` |
+| `scenes-kit.js` | `mountScene(canvas, make)`: the Three.js paper runtime plus helpers (`paperMaterial`, `addLights`, `addGround`) and the `field` and `desk` scenes. Returns `{ dispose, wake }`. Three.js is vendored in `vendor/` |
 | `tailwind-preset.js` | The same tokens for Tailwind v3 projects (v4: map the `:root` block under `@theme`) |
 | `template.html` | Marketing starter. Entrance, section, hover/press, nav state, and the hero scene are already on |
-| `login.html` | Sign-in starter with the same motion, plus a password-visibility state, and `data-scene="hero"` |
-| `main.js` | Mounts the field scene for `template.html` and `login.html` |
-| `fixture.html` | Operational ledger fixture: queue, inspector, dialog, draft, receipt. The critical queue is not held for an entrance |
-| `vendor/` | Three.js r0.170.0 (`three.module.min.js`) plus the two addons the field scene uses. MIT |
+| `login.html` | Sign-in starter with the same motion, a password-visibility state, and the `desk` scene (`data-scene-kind="desk"`) |
+| `main.js` | Mounts `field` on the hero and `desk` on sign-in. `?webgl=off` shows the fallback and skips the renderer |
+| `fixture.html` | Operational ledger fixture: queue, inspector, dialog, draft, receipt, named views, local export. The critical queue is not held for an entrance. No decorative scene |
+| `vendor/` | Three.js r0.170.0 (`three.module.min.js`) plus the two addons the scenes use. MIT |
 
 In React/Vue/Svelte projects, import `paper.css` (and `tool.css`) once at the root and use the class
 names. Or use the Tailwind preset with the same values. Don't fork the palette into a JS theme
@@ -157,7 +159,7 @@ Markup the kit already plays: `data-enter` (on load), `data-reveal` (on scroll),
 - An in-app control `[data-paper-reduce-motion]` sets `data-paper-motion="reduce"` and `localStorage` key `paper-reduce-motion`. It can strengthen the OS setting. It cannot turn motion back on while the OS asks for less. `[data-paper-reduce-effects]` is separate (`paper-reduce-effects`) and hides grain and the canvas.
 - Query `?motion=reduce` and `?effects=reduce` apply for that load.
 - One polite live region, `#paper-status`. Do not put `aria-live` on a fast table.
-- Hero and login canvases use `data-scene="hero"` so the field keeps moving while the tab is visible. Other scenes sleep 1.2s after the last scroll or pointer move. Reduced motion fades the canvas in, then holds a still frame. Do not add a spring library for a hover.
+- Hero and login canvases use `data-scene="hero"` so `field` and `desk` keep moving while that section is on screen. Other scenes sleep 1.2s after the last scroll or pointer move. Reduced motion fades the canvas in, then holds a still frame. Do not add a spring library for a hover.
 
 ### Motion gap audit
 
@@ -182,30 +184,40 @@ Before shipping, confirm each item that applies. A miss means the page does not 
 
 ## Three.js — high fidelity, always on paper
 
-Every marketing site gets a 3D layer unless the user says otherwise; tools get it where it explains something
-(a topology, a model, a map), not as wallpaper behind forms. The canvas is `aria-hidden` and decorative. Anything that matters is also in the DOM. Mesh picking selects an id; it does not dispatch a physical command.
+Every marketing site gets a 3D layer unless the user says otherwise. Hero banners use `field`. Sign-in pages use `desk`. Tools get a scene only where it explains something, not as wallpaper behind a form. The canvas is `aria-hidden`. Anything that matters is also in the DOM.
 
-- **Render onto the paper.** `setClearColor(PAPER)`, `scene.background = PAPER`,
-  `Fog(PAPER, …)`, `NeutralToneMapping`, sRGB output. The canvas must have no visible edge.
-- **Materials:** `MeshPhysicalMaterial` (light clearcoat + sheen) lit by a `RoomEnvironment`
-  PMREM. Mostly paper-white and warm-grey objects, a few ink ones, and ~1–3% vermilion.
-  White-on-white gets its depth from a strong key light and **soft shadows onto a `ShadowMaterial`
-  ground**, not from outlines.
-- **Motion** on hero and login scenes (`data-scene="hero"`) continues while the tab is visible. Every other scene moves while someone is scrolling or moving the pointer, then the loop sleeps. Nothing flashes. Scroll progress (`state.hp` hero, `state.sp` page) may ease the camera. Do not capture the wheel.
-- **Composition:** on desktop the object sits beside the copy, not behind it. On phones it goes in
-  the band below the hero text, and the background dims as you scroll past the hero. Text must
-  never sit on a busy part of the scene.
-- **Degrade, always** (built into `mountScene`):
-  - No WebGL, or a lost context → the canvas stays hidden, `data-scene-state="unavailable"`, and `[data-scene-fallback]` is shown if present. The page is complete.
-  - Phones, coarse pointers and ≤4 cores → standard material, 1024 shadow maps, fewer instances, DPR ≤ 1.5.
-  - A quality ladder steps down when mean frame time exceeds 33ms across a 2s window, and stops if a cut does not help. `data-scene-quality` becomes `reduced` or `minimal`.
-  - `prefers-reduced-motion` or `data-paper-motion="reduce"` → scene time stops and the canvas fades to a still frame. Page motion keeps its fades. Honour both live.
-  - `data-paper-effects="reduce"` → canvas hidden, shadows off, loop stopped.
-  - Hidden tab or faded canvas → the loop sleeps. Frame deltas are clamped to 50ms.
-  - Two WebGL contexts must never both render. The second `mountScene` call is skipped.
-  - Call `dispose()` on unmount.
-- **Delivery:** Three.js is already vendored in `kit/vendor/` (`three.module.min.js`, MIT, plus `RoomEnvironment.js` and `RoundedBoxGeometry.js`). `scenes-kit.js` imports those relative paths. No CDN import map.
-- One module per page scene.
+Mount, from a module next to the kit (`kit/main.js` does this):
+
+```js
+import { mountScene, field, desk } from './scenes-kit.js';
+
+var canvas = document.getElementById('scene');
+if (new URLSearchParams(location.search).get('webgl') === 'off') {
+  // show [data-scene-fallback] and skip the renderer
+} else {
+  mountScene(canvas, canvas.dataset.sceneKind === 'desk' ? desk : field);
+}
+```
+
+Markup:
+
+```html
+<canvas class="scene" id="scene" data-scene="hero" data-fade="hero" aria-hidden="true"></canvas>
+<!-- sign-in adds data-scene-kind="desk" -->
+<p class="hint scene-fallback" data-scene-fallback hidden>The paper scene is unavailable in this browser. The page still works.</p>
+```
+
+- `data-scene="hero"` keeps the loop running while the hero section is on screen.
+- `data-fade="hero"` fades the canvas across one viewport of scroll, then the loop sleeps. Scrolling back wakes it.
+- `data-scene-kind="desk"` is the sign-in stack. Omit it for the hero field.
+- The sign-in card is an opaque `.pane`. The desk sits to the left on a wide screen and in the stage band on a phone. The form stays readable and usable with the scene, with reduced motion, and with WebGL off.
+- **Render onto the paper.** `setClearColor(PAPER)`, `scene.background = PAPER`, `Fog(PAPER, …)`, `NeutralToneMapping`, sRGB. No new hues: paper, ink, and one vermilion seal.
+- **Materials:** `MeshPhysicalMaterial` on a desktop tier, `MeshStandardMaterial` on phones, coarse pointers, and ≤4 cores. Soft shadows land on a `ShadowMaterial` ground.
+- **Budget:** DPR cap 2 on the desktop tier and 1.5 on the phone tier. If frames stay slower than 33ms for 2 seconds, the ladder steps down and then stops. Deltas clamp at 50ms. The phone field uses fewer instances and skips the extra sheets.
+- **Reduced motion** (`prefers-reduced-motion` or `data-paper-motion="reduce"`) is a still frame. Scene time does not advance and the camera does not follow scroll. The canvas still fades in.
+- **Pause** when the hero section is off screen, the tab is hidden, effects are reduced, or the canvas has faded out.
+- **No WebGL**, `?webgl=off`, or a lost context: the canvas stays hidden, `data-scene-state="unavailable"`, and the fallback is shown. It is positioned so it does not shift the page. A second WebGL context is refused. Call `dispose()` on unmount.
+- **Delivery:** Three.js r0.170.0 is vendored in `kit/vendor/` (`three.module.min.js`, MIT, plus `RoomEnvironment.js` and `RoundedBoxGeometry.js`). No CDN import map.
 
 ## Accessibility and security baseline
 

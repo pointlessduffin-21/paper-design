@@ -457,6 +457,7 @@
                 }
             }
             announce('Draft saved on this page. Nothing was sent.');
+            writeDraft(form);
         }
     }, true);
 
@@ -523,6 +524,126 @@
     });
 
     syncToggles();
+
+    /* Named ledger views, a local export, and a tab-scoped draft. */
+    var PRESET_NOTE = {
+        all: 'All assets in this ledger.',
+        attention: 'Assets that need attention: critical, offline, or missing data.',
+        running: 'Assets whose state says Running.'
+    };
+    function applyPreset(group, name) {
+        var table = document.getElementById(group.getAttribute('data-paper-presets'));
+        if (!table || !table.tBodies[0]) return;
+        Array.prototype.forEach.call(table.tBodies[0].rows, function (row) {
+            var state = row.cells[1] ? row.cells[1].textContent : '';
+            var show = name === 'all'
+                || (name === 'attention' && /Critical|Offline|Unavailable|Disconnected/i.test(state))
+                || (name === 'running' && /Running/i.test(state));
+            row.hidden = !show;
+        });
+        group.querySelectorAll('[data-paper-preset]').forEach(function (btn) {
+            btn.setAttribute('aria-pressed', btn.getAttribute('data-paper-preset') === name ? 'true' : 'false');
+        });
+        var noteId = group.getAttribute('aria-describedby');
+        var note = noteId && document.getElementById(noteId);
+        if (note && PRESET_NOTE[name]) note.textContent = PRESET_NOTE[name];
+    }
+    document.querySelectorAll('[data-paper-presets]').forEach(function (group) {
+        group.addEventListener('click', function (e) {
+            var btn = closest(e.target, '[data-paper-preset]');
+            if (!btn) return;
+            applyPreset(group, btn.getAttribute('data-paper-preset') || 'all');
+        });
+    });
+    document.querySelectorAll('table[data-paper-sort]').forEach(function (table) {
+        if (table.tBodies[0]) table.tBodies[0].__paperOrder = Array.prototype.slice.call(table.tBodies[0].rows);
+    });
+    function draftKey(form) {
+        return 'paper-draft:' + location.pathname + '#' + (form.id || 'form');
+    }
+    function writeDraft(form) {
+        if (!form || !form.hasAttribute('data-paper-persist')) return;
+        var data = {};
+        Array.prototype.forEach.call(form.elements, function (field) {
+            if (!field.name || field.type === 'password' || field.type === 'file') return;
+            data[field.name] = field.value;
+        });
+        try { sessionStorage.setItem(draftKey(form), JSON.stringify(data)); } catch (err) { /* storage blocked */ }
+    }
+    function clearDraft(form) {
+        try { sessionStorage.removeItem(draftKey(form)); } catch (err) { /* storage blocked */ }
+        Array.prototype.forEach.call(form.elements, function (field) {
+            if (!field.name || field.type === 'password' || field.type === 'file') return;
+            field.value = '';
+            field.removeAttribute('aria-invalid');
+        });
+        var note = form.querySelector('[data-paper-draft-note]');
+        if (note) note.hidden = true;
+        announce('Draft discarded on this page. Nothing was sent.');
+    }
+    document.querySelectorAll('form[data-paper-persist]').forEach(function (form) {
+        var raw = null;
+        try { raw = sessionStorage.getItem(draftKey(form)); } catch (err) { raw = null; }
+        if (!raw) return;
+        var data;
+        try { data = JSON.parse(raw); } catch (err) { return; }
+        var restored = false;
+        Object.keys(data).forEach(function (name) {
+            var field = form.elements[name];
+            if (!field || field.type === 'password') return;
+            field.value = data[name];
+            restored = true;
+        });
+        if (!restored) return;
+        var note = form.querySelector('[data-paper-draft-note]');
+        if (note) note.hidden = false;
+        announce('Draft restored on this page. Nothing was sent.');
+    });
+    document.addEventListener('click', function (e) {
+        var exp = closest(e.target, '[data-paper-export]');
+        if (exp) {
+            var table = document.getElementById(exp.getAttribute('data-paper-export'));
+            if (!table || !table.tBodies[0]) return;
+            var lines = [];
+            Array.prototype.forEach.call(table.tBodies[0].rows, function (row) {
+                if (row.hidden) return;
+                lines.push(Array.prototype.map.call(row.cells, function (cell) {
+                    return cell.textContent.replace(/\s+/g, ' ').trim();
+                }).join('\t'));
+            });
+            var blob = new Blob([lines.join('\n') + '\n'], { type: 'text/plain' });
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = 'ledger.txt';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            announce('Exported the visible rows. Nothing was sent.');
+        }
+        var restore = closest(e.target, '[data-paper-restore]');
+        if (restore) {
+            var restoredTable = document.getElementById(restore.getAttribute('data-paper-restore'));
+            if (restoredTable && restoredTable.tBodies[0] && restoredTable.tBodies[0].__paperOrder) {
+                restoredTable.tBodies[0].__paperOrder.forEach(function (row) {
+                    restoredTable.tBodies[0].appendChild(row);
+                });
+                restoredTable.querySelectorAll('[aria-sort]').forEach(function (node) {
+                    node.removeAttribute('aria-sort');
+                });
+            }
+            document.querySelectorAll('[data-paper-presets]').forEach(function (group) {
+                if (!restoredTable || group.getAttribute('data-paper-presets') === restoredTable.id) applyPreset(group, 'all');
+            });
+            announce('Restored the authored order.');
+        }
+        var discard = closest(e.target, '[data-paper-discard]');
+        if (discard) {
+            var form = closest(discard, 'form');
+            if (form) clearDraft(form);
+        }
+    });
 
     window.paper = {
         motionReduced: motionReduced,

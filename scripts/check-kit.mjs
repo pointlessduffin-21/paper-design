@@ -241,6 +241,39 @@ test('pages expose the guidelines and have no duplicate ids or positive tabindex
     assert.match(fixture, /id="command-review"/);
     assert.match(fixture, /data-section/);
     assert.match(fixture, /Unavailable/);
+    const audit = read('plugins/paper-design/skills/paper-design/guidelines-gap-audit.md');
+    for (let n = 1; n <= 31; n += 1) {
+        assert.match(audit, new RegExp('\\| ' + String(n).padStart(2, '0') + ' \\|'));
+    }
+    assert.match(audit, /\| doc-only \|/);
+    assert.match(audit, /\| partial \|/);
+    assert.match(skill, /guidelines-gap-audit\.md/);
+    assert.match(scenes, /function desk\(/);
+    assert.match(scenes, /export \{[^}]*\bdesk\b/);
+    assert.match(scenes, /IntersectionObserver/);
+    assert.match(scenes, /heroVisible/);
+    assert.match(scenes, /target\.hp = 0/);
+    assert.match(scenes, /dataset\.sceneState = 'unavailable'/);
+    assert.match(scenes, /dprCap = low \? 1\.5 : 2/);
+    assert.match(paperCss, /\.scene-fallback \{[^}]*position:\s*absolute/);
+    assert.match(paperCss, /\.login-grid \{[^}]*display:\s*grid/);
+    assert.match(template, /data-fade="hero"/);
+    assert.match(template, /data-scene-fallback/);
+    assert.match(login, /data-scene-kind="desk"/);
+    assert.match(login, /data-fade="hero"/);
+    assert.match(login, /data-scene-fallback/);
+    assert.doesNotMatch(login, /data-paper-persist/);
+    assert.match(mainJs, /get\('webgl'\) === 'off'/);
+    assert.match(mainJs, /data-scene-kind'\) === 'desk' \? desk : field/);
+    assert.match(fixture, /data-paper-presets="ledger"/);
+    assert.match(fixture, /data-paper-persist/);
+    assert.match(fixture, /data-paper-export="ledger"/);
+    assert.match(fixture, /data-paper-restore="ledger"/);
+    assert.match(fixture, /data-paper-discard/);
+    assert.match(paperJs, /sessionStorage/);
+    assert.match(paperJs, /function writeDraft/);
+    assert.match(paperJs, /function applyPreset/);
+    assert.match(skill, /data-scene-kind="desk"/);
     for (const doc of [skill, guidelines, claude]) {
         assert.match(doc, /does not follow the skill/);
         assert.match(doc, /Motion gap audit/);

@@ -15,7 +15,7 @@
 <body>
     <a class="skip" href="#main">Skip to content</a>
     <div id="paper-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
-    <canvas class="scene" id="scene" data-scene="hero" aria-hidden="true"></canvas>
+    <canvas class="scene" id="scene" data-scene="hero" data-scene-kind="desk" data-fade="hero" aria-hidden="true"></canvas>
 
     <header class="nav" id="nav">
         <a class="nav__logo" href="template.html">Name <small>tagline</small></a>
@@ -35,7 +35,7 @@
                     <p class="eyebrow" data-enter>Account</p>
                     <h1 class="display" data-enter>Sign in to <em>the sheet</em></h1>
                     <p class="lead" data-enter>Use the address you already have. This template does not create a session.</p>
-                    <p data-scene-fallback hidden>The paper scene is unavailable in this browser. Sign-in still works.</p>
+                    <p class="hint scene-fallback" data-scene-fallback hidden>The paper scene is unavailable in this browser. Sign-in still works.</p>
                 </div>
                 <form class="pane login-card" data-enter data-paper-form data-paper-local aria-labelledby="login-title">
                     <h2 class="pane__title" id="login-title">Continue</h2>

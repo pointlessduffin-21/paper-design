@@ -8,11 +8,12 @@
      - device tier (LOW): phones / coarse pointers / <=4 cores get
        MeshStandardMaterial, 1024 shadow maps, DPR cap 1.5
      - quality ladder that stops descending when a cut does not help
-     - prefers-reduced-motion and data-paper-motion="reduce": no camera
-       travel and no wave motion. The canvas still fades in, then holds
-       a still frame. Scroll can update that frame, then the loop sleeps
-     - data-scene="hero" (hero and login pages): the field keeps moving
-       while the tab is visible. Other scenes sleep 1.2s after input
+     - prefers-reduced-motion and data-paper-motion="reduce": a still
+       frame. Time and the scroll camera stay put. The canvas still fades in
+     - data-scene="hero" (hero and login): the scene keeps moving while
+       its hero section is on screen. Other scenes sleep 1.2s after input
+     - the hero section leaving the viewport, a hidden tab, or a faded
+       canvas pauses the loop. It resumes when the hero comes back
      - data-paper-effects="reduce": shadows off, canvas hidden in CSS
      - large frame deltas are clamped to 50ms so a backgrounded tab
        cannot jump the camera
@@ -21,9 +22,11 @@
      - no WebGL or a lost context: the canvas stays hidden; the page
        must be complete without it. dispose() releases the GPU resources
 
-   Usage (bundler):
-     import { mountScene, field } from './scenes-kit.js';
-     mountScene(document.getElementById('scene'), field);
+   Usage:
+     import { mountScene, field, desk } from './scenes-kit.js';
+     mountScene(canvas, canvas.dataset.sceneKind === 'desk' ? desk : field);
+   field is the hero banner. desk is the sign-in still life.
+   data-fade="hero" fades the canvas across one viewport of scroll.
 
    Three.js is vendored next to this file (vendor/three.module.min.js,
    MIT). Hero and login pages import this module directly. No CDN and
@@ -153,6 +156,38 @@ function field({ scene, camera, low, state }) {
         mesh.setColorAt(i, col);
     }
     scene.add(mesh);
+
+    /* A few larger sheets sit in the banner, beside the type on desktop.
+       Phones keep the field alone. */
+    const sheets = [];
+    if (!low) {
+        const specs = [
+            { size: [2.6, 0.07, 3.4], at: [8.4, 1.15, -1.4], rot: 0.18, color: PAPER_HI },
+            { size: [1.9, 0.07, 2.5], at: [9.6, 1.4, 1.15], rot: -0.22, color: PAPER },
+            { size: [0.7, 0.45, 0.7], at: [7.1, 0.85, 2.2], rot: 0.4, color: INK }
+        ];
+        specs.forEach((spec) => {
+            const sheet = new THREE.Mesh(
+                new RoundedBoxGeometry(spec.size[0], spec.size[1], spec.size[2], 2, 0.04),
+                paperMaterial(spec.color)
+            );
+            sheet.position.set(spec.at[0], spec.at[1], spec.at[2]);
+            sheet.rotation.y = spec.rot;
+            sheet.castShadow = true;
+            sheet.receiveShadow = true;
+            scene.add(sheet);
+            sheets.push({ mesh: sheet, base: spec.at[1] });
+        });
+        const seal = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.22, 0.22, 0.05, 24),
+            paperMaterial(ACCENT, { roughness: 0.4 })
+        );
+        seal.position.set(8.7, 1.62, 0.15);
+        seal.castShadow = true;
+        scene.add(seal);
+        sheets.push({ mesh: seal, base: 1.62 });
+    }
+
     addGround(scene, 0, 0.14);
     const key = addLights(scene, low, 30);
     key.position.set(-18, 34, 14);
@@ -217,6 +252,69 @@ function field({ scene, camera, low, state }) {
                 m[o + 12] = x; m[o + 13] = 0; m[o + 14] = z; m[o + 15] = 1;
             }
             mesh.instanceMatrix.needsUpdate = true;
+            sheets.forEach((sheet, index) => {
+                sheet.mesh.position.y = sheet.base + Math.sin(t * 0.45 + index) * 0.05;
+            });
+        }
+    };
+}
+
+/* ------------------------------------------------------------
+   DESK — sign-in. A short stack of sheets and one vermilion seal.
+   It sits to the left on a wide screen so the form card stays clear.
+   ------------------------------------------------------------ */
+function desk({ scene, camera, low, state }) {
+    const group = new THREE.Group();
+    const specs = [
+        { size: [3.1, 0.08, 4.1], at: [0.2, 0.16, 0], rot: -0.42, color: PAPER_HI },
+        { size: [2.7, 0.08, 3.5], at: [0.55, 0.34, 0.15], rot: -0.12, color: PAPER },
+        { size: [2.1, 0.08, 2.7], at: [0.15, 0.52, -0.1], rot: 0.22, color: PAPER_LO }
+    ];
+    specs.forEach((spec) => {
+        const sheet = new THREE.Mesh(
+            new RoundedBoxGeometry(spec.size[0], spec.size[1], spec.size[2], 2, 0.03),
+            paperMaterial(spec.color)
+        );
+        sheet.position.set(spec.at[0], spec.at[1], spec.at[2]);
+        sheet.rotation.y = spec.rot;
+        sheet.castShadow = true;
+        sheet.receiveShadow = true;
+        group.add(sheet);
+    });
+    const seal = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.26, 0.26, 0.06, low ? 12 : 28),
+        paperMaterial(ACCENT, { roughness: 0.38 })
+    );
+    seal.position.set(0.85, 0.66, 0.35);
+    seal.castShadow = true;
+    group.add(seal);
+    const clip = new THREE.Mesh(
+        new RoundedBoxGeometry(0.16, 0.42, 1.05, 2, 0.04),
+        paperMaterial(INK)
+    );
+    clip.position.set(-1.15, 0.42, 0.7);
+    clip.rotation.y = 0.3;
+    clip.castShadow = true;
+    group.add(clip);
+    scene.add(group);
+    addGround(scene, 0, 0.18);
+    const key = addLights(scene, low, 10);
+    key.position.set(-5, 9, 5);
+    scene.fog = new THREE.Fog(PAPER, 14, 36);
+    const look = new THREE.Vector3();
+
+    return {
+        update(t) {
+            const narrow = state.aspect < 1;
+            const bob = Math.sin(t * 0.5) * 0.03;
+            group.rotation.y = Math.sin(t * 0.32) * 0.12;
+            /* Wide: park the stack in the open left column. Narrow: drop it
+               into the stage band under the copy. */
+            group.position.set(narrow ? 0 : -2.8, (narrow ? -0.85 : 0) + bob, narrow ? 0.4 : 0);
+            look.set(narrow ? 0.15 : -0.4, narrow ? 1.35 : 0.45, 0);
+            const dist = narrow ? 14.5 : 11;
+            camera.position.set(look.x + dist * 0.18, narrow ? 6.4 : 4.4, dist);
+            camera.lookAt(look);
         }
     };
 }
@@ -234,6 +332,13 @@ function field({ scene, camera, low, state }) {
  */
 export function mountScene(canvas, make) {
     const idle = { dispose() {}, wake() {} };
+    function showFallback() {
+        if (!canvas) return;
+        canvas.classList.remove('is-ready');
+        canvas.dataset.sceneState = 'unavailable';
+        const fallback = document.querySelector('[data-scene-fallback]');
+        if (fallback) fallback.hidden = false;
+    }
     if (!canvas || !make) return idle;
 
     const host = window;
@@ -262,7 +367,7 @@ export function mountScene(canvas, make) {
         });
     } catch (e) {
         host.__paperWebGL.n = Math.max(0, host.__paperWebGL.n - 1);
-        canvas.dataset.sceneState = 'unavailable';
+        showFallback();
         return idle;     // no WebGL: the page is complete without us
     }
 
@@ -299,7 +404,7 @@ export function mountScene(canvas, make) {
         renderer.dispose();
         if (envTex) envTex.dispose();
         host.__paperWebGL.n = Math.max(0, host.__paperWebGL.n - 1);
-        canvas.dataset.sceneState = 'unavailable';
+        showFallback();
         return idle;
     }
 
@@ -312,6 +417,8 @@ export function mountScene(canvas, make) {
     let shown = false;
     let lastActivity = 0;
     let ro = null;
+    let heroVisible = true;
+    let heroObserver = null;
     const IDLE_GRACE = 1200;
 
     function motionOff() {
@@ -343,7 +450,7 @@ export function mountScene(canvas, make) {
     }
 
     function wake() {
-        if (disposed || document.hidden || effectsOff()) return;
+        if (disposed || document.hidden || effectsOff() || !heroVisible) return;
         dirty = true;
         lastActivity = performance.now();
         if (!running) {
@@ -392,11 +499,8 @@ export function mountScene(canvas, make) {
     function onContextLost(e) {
         e.preventDefault();
         stopLoop();
-        canvas.classList.remove('is-ready');
         canvas.style.opacity = '0';
-        canvas.dataset.sceneState = 'unavailable';
-        const fallback = document.querySelector('[data-scene-fallback]');
-        if (fallback) fallback.hidden = false;
+        showFallback();
     }
     let rung = 0;
     function onPreference() {
@@ -419,6 +523,17 @@ export function mountScene(canvas, make) {
     canvas.addEventListener('webglcontextlost', onContextLost);
     mqReduced.addEventListener('change', onPreference);
     attrObserver.observe(rootEl, { attributes: true, attributeFilter: ['data-paper-motion', 'data-paper-effects'] });
+
+    const hero = document.querySelector('.page-hero, .hero');
+    if (hero && 'IntersectionObserver' in window) {
+        heroObserver = new IntersectionObserver((entries) => {
+            heroVisible = entries.some((entry) => entry.isIntersecting);
+            canvas.dataset.sceneVisible = heroVisible ? 'true' : 'false';
+            if (!heroVisible) stopLoop();
+            else wake();
+        }, { threshold: 0 });
+        heroObserver.observe(hero);
+    }
 
     /* ---- quality ladder: step down when frames stay slower than 33ms
        across a 2s window, and stop if a cut does not help. */
@@ -460,6 +575,14 @@ export function mountScene(canvas, make) {
         last = now;
         const dt = dtMs / 1000;
         if (!reduced) t += dt;
+        /* A reduced-motion scene is a still frame at the rest camera.
+           Scroll and the pointer do not travel it. */
+        if (reduced) {
+            target.hp = 0;
+            target.sp = 0;
+            target.px = 0;
+            target.py = 0;
+        }
 
         const k = 1 - Math.exp(-dt * (reduced ? 30 : 4));
         state.hp += (target.hp - state.hp) * k;
@@ -521,6 +644,7 @@ export function mountScene(canvas, make) {
         canvas.removeEventListener('webglcontextlost', onContextLost);
         mqReduced.removeEventListener('change', onPreference);
         if (ro) ro.disconnect();
+        if (heroObserver) heroObserver.disconnect();
         attrObserver.disconnect();
         scene.traverse((o) => {
             if (o.geometry && o.geometry.dispose) o.geometry.dispose();
@@ -540,4 +664,4 @@ export function mountScene(canvas, make) {
     return { dispose, wake };
 }
 
-export { THREE, LOW, PAPER, PAPER_HI, PAPER_LO, INK, ACCENT, clamp, lerp, smooth, hash, paperMaterial, addLights, addGround, field, RoundedBoxGeometry };
+export { THREE, LOW, PAPER, PAPER_HI, PAPER_LO, INK, ACCENT, clamp, lerp, smooth, hash, paperMaterial, addLights, addGround, field, desk, RoundedBoxGeometry };

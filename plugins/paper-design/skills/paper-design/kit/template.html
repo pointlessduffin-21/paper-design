@@ -17,7 +17,7 @@
     <div id="paper-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <!-- Decorative 3D layer. The page must be complete without it.
          data-scene="hero" keeps the field moving while this tab is visible. -->
-    <canvas class="scene" id="scene" data-scene="hero" aria-hidden="true"></canvas>
+    <canvas class="scene" id="scene" data-scene="hero" data-fade="hero" aria-hidden="true"></canvas>
 
     <header class="nav" id="nav">
         <a class="nav__logo" href="/">Name <small>tagline</small></a>
@@ -36,7 +36,7 @@
                 <p class="eyebrow" data-enter>Short label</p>
                 <h1 class="display" data-enter>Plain words, <em>one accent</em></h1>
                 <p class="lead" data-enter>One or two sentences that say what this is and who it is for.</p>
-                <p data-scene-fallback hidden>The paper scene is unavailable in this browser. The page still works.</p>
+                <p class="hint scene-fallback" data-scene-fallback hidden>The paper scene is unavailable in this browser. The page still works.</p>
                 <div class="btns" data-enter style="margin-top:28px">
                     <a class="btn btn--ink" href="#">Primary action <span class="arrow">→</span></a>
                     <a class="btn" href="#">Secondary</a>
