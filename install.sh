@@ -33,6 +33,11 @@ PY
     echo "✓ $name rule in $MD"
 done
 
+# The agents the routing rule hands work to (docs = Haiku, worker = Sonnet).
+mkdir -p "$CLAUDE_DIR/agents"
+cp "$HERE"/global/agents/*.md "$CLAUDE_DIR/agents/"
+echo "✓ docs + worker agents in $CLAUDE_DIR/agents"
+
 # 2. The plugin (skill + kit), from GitHub so `claude plugin update` keeps it current.
 # Machines set up before the repo was renamed still point at the old name;
 # re-add so updates come from the right place.

@@ -22,11 +22,15 @@ git clone https://github.com/pointlessduffin-21/paper-design.git ~/paper-design
 Inside Agents you can run the same lines with a `!` prefix (for example
 `! ~/paper-design/install.sh`).
 
-Then restart Agents. The script is safe to re-run. It does two things:
+Then restart Agents. The script is safe to re-run. It does three things:
 
-1. Adds the "always use Paper" rule to `~/.claude/CLAUDE.md`, between
-   `<!-- paper-design:start/end -->` markers, so a re-run replaces it instead of duplicating it.
-2. Adds this repo as the `yeems214` plugin marketplace and installs `paper-design@yeems214`,
+1. Adds one marker block to `~/.claude/CLAUDE.md` for each `global/CLAUDE.<name>.md`: the
+   "always use Paper" rule (`<!-- paper-design:start/end -->`), the model-routing rule
+   (`<!-- agents:start/end -->`) and the push and handoff rule (`<!-- workflow:start/end -->`).
+   A re-run replaces each block instead of duplicating it.
+2. Copies the `docs` (Haiku) and `worker` (Sonnet) agents from `global/agents/` to
+   `~/.claude/agents/`.
+3. Adds this repo as the `yeems214` plugin marketplace and installs `paper-design@yeems214`,
    which provides the skill and its kit.
 
 If you only want the plugin, run these inside Agents:
@@ -42,6 +46,9 @@ If you only want the plugin, run these inside Agents:
 cd ~/paper-design && git pull && ./install.sh
 ```
 
+If `~/.claude/CLAUDE.md` still has an older hand-written "Model and effort" section outside the
+markers, delete it by hand first. Otherwise the routing rule appears twice.
+
 ## Layout
 
 ```
@@ -54,6 +61,8 @@ plugins/paper-design/
   skills/paper-design/kit/               paper.css · tool.css · paper.js · paper-policy.mjs
                                          scenes-kit.js · tailwind-preset.js · vendor/
                                          template.html · login.html · fixture.html · main.js
+global/CLAUDE.agents.md                  the model-routing rule block (agents markers)
+global/agents/                           docs.md (Haiku) and worker.md (Sonnet), copied to ~/.claude/agents/
 global/CLAUDE.paper.md                   the Paper rule block install.sh puts in ~/.claude/CLAUDE.md
 global/CLAUDE.workflow.md                the push/handoff rule block (Haiku 5.5 pushes and writes
                                          CHANGELOG.md / HANDOFF.md); any CLAUDE.<name>.md here is installed
