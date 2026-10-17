@@ -8,11 +8,12 @@
      - device tier (LOW): phones / coarse pointers / <=4 cores get
        MeshStandardMaterial, 1024 shadow maps, DPR cap 1.5
      - quality ladder that stops descending when a cut does not help
-     - prefers-reduced-motion and data-paper-motion="reduce": time stops;
-       the scene still answers scroll, then the loop sleeps
+     - prefers-reduced-motion and data-paper-motion="reduce": no camera
+       travel and no wave motion. The canvas still fades in, then holds
+       a still frame. Scroll can update that frame, then the loop sleeps
+     - data-scene="hero" (hero and login pages): the field keeps moving
+       while the tab is visible. Other scenes sleep 1.2s after input
      - data-paper-effects="reduce": shadows off, canvas hidden in CSS
-     - idle: no continuous decorative requestAnimationFrame. The loop
-       runs during scroll or for 1.2s after pointer activity, then sleeps
      - large frame deltas are clamped to 50ms so a backgrounded tab
        cannot jump the camera
      - a second WebGL context on the page is refused
@@ -24,16 +25,14 @@
      import { mountScene, field } from './scenes-kit.js';
      mountScene(document.getElementById('scene'), field);
 
-   Static sites (no bundler): vendor Three.js and rewrite the three
-   imports below to relative paths, e.g. './vendor/three/three.module.min.js',
-   and in the vendored add-ons replace `from 'three'` the same way.
-   Never load Three from a CDN via an importmap — it forces
-   script-src 'unsafe-inline'.
+   Three.js is vendored next to this file (vendor/three.module.min.js,
+   MIT). Hero and login pages import this module directly. No CDN and
+   no inline import map.
    ============================================================ */
 
-import * as THREE from 'three';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import * as THREE from './vendor/three.module.min.js';
+import { RoomEnvironment } from './vendor/RoomEnvironment.js';
+import { RoundedBoxGeometry } from './vendor/RoundedBoxGeometry.js';
 
 const PAPER = new THREE.Color('#f5f2eb');
 const PAPER_HI = new THREE.Color('#fbf9f4');
@@ -251,6 +250,7 @@ export function mountScene(canvas, make) {
     /* "hero" pages fade the scene out as the hero scrolls away and stop
        rendering once it is gone; the rest keep it as a dimmed ground. */
     const fadeMode = canvas.dataset.fade || 'dim';
+    const heroScene = canvas.dataset.scene === 'hero';
 
     let renderer;
     try {
@@ -479,7 +479,10 @@ export function mountScene(canvas, make) {
         const settling = Math.abs(target.hp - state.hp) + Math.abs(target.sp - state.sp) +
             Math.abs(target.px - state.px) + Math.abs(target.py - state.py) > 0.0005;
         const since = now - lastActivity;
-        const decorate = !reduced && since < IDLE_GRACE;
+        /* Hero and login scenes stay in motion while the tab is visible.
+           Every other scene settles, then sleeps. Reduced motion never
+           travels: the canvas fade is CSS opacity. */
+        const decorate = !reduced && (heroScene || since < IDLE_GRACE);
 
         if (opacity > 0.005 && (dirty || settling || decorate)) {
             view.update(t, reduced ? 0 : dt);
@@ -489,8 +492,10 @@ export function mountScene(canvas, make) {
                 shown = true;
                 canvas.classList.add('is-ready');
                 canvas.dataset.sceneState = 'ready';
-                /* CSS owns the short fade-in; scroll opacity takes over after it. */
-                setTimeout(() => { if (!disposed) canvas.style.transition = 'none'; }, 260);
+                /* CSS fade is --dur-enter (480ms). Taking over sooner
+                   would clip it, including the reduced-motion fade. */
+                const FADE_HOLD = 520;
+                setTimeout(() => { if (!disposed) canvas.style.transition = 'none'; }, FADE_HOLD);
             }
             if (!reduced) adapt(dtMs);
         }

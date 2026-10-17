@@ -1,5 +1,6 @@
-/* The starter page is complete without a scene.
-   To mount one, vendor Three.js and replace this file with:
-     import { mountScene, field } from './scenes-kit.js';
-     mountScene(document.getElementById('scene'), field);
-   scenes-kit.js imports 'three'. A CDN import map is not used. */
+/* Hero and login pages mount the paper field.
+   The page stays readable if WebGL is missing. */
+import { mountScene, field } from './scenes-kit.js';
+
+var canvas = document.getElementById('scene');
+if (canvas) mountScene(canvas, field);

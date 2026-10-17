@@ -379,6 +379,7 @@ progress::-moz-progress-bar { background: var(--ink); }
 
 /* ---------- dialog (native <dialog>) ---------- */
 dialog.dialog {
+    animation: paper-in var(--dur-state) var(--ease-enter);
     width: min(560px, calc(100vw - 32px));
     max-height: calc(100dvh - 48px);
     padding: 0;

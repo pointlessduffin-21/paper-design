@@ -128,7 +128,6 @@
     function setReduceMotion(on) {
         setFlag('data-paper-motion', on);
         writeStore(MOTION_KEY, on ? '1' : '0');
-        if (motionReduced()) revealAll();
         syncToggles();
     }
     function setReduceEffects(on) {
@@ -146,9 +145,8 @@
     if (params && params.get('effects') === 'reduce') setFlag('data-paper-effects', true);
 
     reduced.addEventListener('change', function () {
-        if (motionReduced()) revealAll();
         syncToggles();
-        if (reduced.matches) announce('Reduced motion is on.');
+        if (reduced.matches) announce('Reduced motion is on. Movement is limited to fades.');
     });
 
     document.addEventListener('click', function (e) {
@@ -159,13 +157,29 @@
                 syncToggles();
             } else {
                 setReduceMotion(root.getAttribute('data-paper-motion') !== 'reduce');
-                announce(motionReduced() ? 'Reduced motion is on.' : 'Motion follows the system setting.');
+                announce(motionReduced() ? 'Reduced motion is on. Movement is limited to fades.' : 'Motion follows the system setting.');
             }
         }
         var effectsBtn = closest(e.target, '[data-paper-reduce-effects]');
         if (effectsBtn) {
             setReduceEffects(root.getAttribute('data-paper-effects') !== 'reduce');
             announce(effectsReduced() ? 'Visual effects are reduced.' : 'Visual effects are on.');
+        }
+        var stateBtn = closest(e.target, '[data-paper-state]');
+        if (stateBtn && !stateBtn.disabled) {
+            var turningOn = stateBtn.getAttribute('data-state') !== 'on';
+            setState(stateBtn, turningOn);
+            if (stateBtn.hasAttribute('aria-pressed')) {
+                stateBtn.setAttribute('aria-pressed', turningOn ? 'true' : 'false');
+            }
+            var controlledId = stateBtn.getAttribute('aria-controls');
+            var controlled = controlledId && document.getElementById(controlledId);
+            if (controlled && stateBtn.getAttribute('data-paper-state') === 'password') {
+                if (controlled.type === 'password' || controlled.type === 'text') {
+                    controlled.type = turningOn ? 'text' : 'password';
+                }
+                stateBtn.textContent = turningOn ? 'Hide password' : 'Show password';
+            }
         }
         var ack = closest(e.target, '[data-paper-ack]');
         if (ack && !ack.disabled) {
@@ -252,47 +266,97 @@
         });
     }
 
-    /* ---------- reveal: never hide content; cap stagger ---------- */
-    var revealables = document.querySelectorAll('[data-reveal], .rise');
+    /* ---------- motion helpers (window.paper) ----------
+       Every Paper page uses these. A page with none of them does not
+       follow the skill.
+         paper.enter(el)     play the entrance now
+         paper.reveal(el)    same fade, for a node that just appeared
+         paper.section(el)   mark data-section and play the longer fade
+         paper.setState(el, 'on' | 'off' | name)
+       Markup: data-enter, data-reveal, data-section, data-paper-state.
+       data-motion="off" opts a subtree out. Alarms stay visible.
+       Reduced motion still runs the fade: --paper-shift is 0. */
+    var STAGGER_STEP = 40;
+    var STAGGER_CAP = 240;
 
-    function capStagger() {
-        var n = 0;
-        Array.prototype.forEach.call(revealables, function (el) {
-            var critical = el.matches('h1, h2, h3, h4, h5, h6, a, button, [role="status"], [role="alert"]');
-            var delay = 0;
-            if (!critical && el.classList.contains('rise')) {
-                delay = n < 6 ? Math.min(150, n * 30) : 0;
-                n += 1;
-            }
-            if (el.classList.contains('rise') || el.hasAttribute('data-reveal')) {
-                var authored = el.style.getPropertyValue('--d');
-                if (authored && !el.classList.contains('rise')) {
-                    var ms = parseFloat(authored) * (/ms/i.test(authored) ? 1 : 1000);
-                    if (ms > 150) el.style.setProperty('--d', '150ms');
-                } else if (el.classList.contains('rise')) {
-                    el.style.setProperty('--d', delay + 'ms');
-                }
-            }
+    function motionOff(el) {
+        return !el || el.getAttribute('data-motion') === 'off' || closest(el, '[data-motion="off"]');
+    }
+    function holdsAlarm(el) {
+        return el.matches('.status-critical, .banner, [role="alert"], .error') ||
+            !!el.querySelector('.status-critical, [role="alert"]');
+    }
+    function motionNodes(selector) {
+        return Array.prototype.filter.call(document.querySelectorAll(selector), function (el) {
+            return !motionOff(el) && !holdsAlarm(el);
         });
     }
-    capStagger();
-
-    function revealAll() {
-        Array.prototype.forEach.call(revealables, function (el) { el.classList.add('is-in'); });
+    function unique(list) {
+        var seen = [];
+        list.forEach(function (el) { if (seen.indexOf(el) < 0) seen.push(el); });
+        return seen;
+    }
+    function capDelay(el, index) {
+        var authored = el.style.getPropertyValue('--d');
+        if (authored) {
+            var ms = parseFloat(authored) * (/ms/i.test(authored) ? 1 : 1000);
+            if (ms > STAGGER_CAP) el.style.setProperty('--d', STAGGER_CAP + 'ms');
+            return;
+        }
+        var delay = index < 6 ? Math.min(STAGGER_CAP, index * STAGGER_STEP) : 0;
+        el.style.setProperty('--d', delay + 'ms');
+    }
+    function playIn(el) {
+        if (motionOff(el) || holdsAlarm(el)) return el;
+        el.classList.add('is-motion');
+        el.classList.remove('is-in');
+        void el.offsetWidth;
+        el.classList.add('is-in');
+        return el;
+    }
+    function enter(el) { return playIn(el); }
+    function reveal(el) { return playIn(el); }
+    function section(el) {
+        if (el && !motionOff(el)) el.setAttribute('data-section', '');
+        return playIn(el);
+    }
+    function setState(el, state) {
+        if (!el) return el;
+        var name = state === true ? 'on' : state === false ? 'off' : String(state);
+        el.setAttribute('data-state', name);
+        el.classList.toggle('is-on', name === 'on');
+        return el;
     }
 
-    if ('IntersectionObserver' in window && !motionReduced()) {
-        var io = new IntersectionObserver(function (entries) {
-            entries.forEach(function (e) {
-                if (!e.isIntersecting) return;
-                e.target.classList.add('is-in');
-                io.unobserve(e.target);
+    var enters = unique(motionNodes('[data-enter], .page-hero .eyebrow, .page-hero .display, .page-hero .lead, .page-hero .btns, .hero__title, .hero__foot, .login-card'));
+    var staged = unique(motionNodes('[data-reveal], [data-section], .card, section.section, .pane'));
+    enters.forEach(function (el, i) { capDelay(el, i); playIn(el); });
+    staged.forEach(function (el, i) {
+        if (enters.indexOf(el) !== -1) return;
+        capDelay(el, i);
+        el.classList.add('is-motion');
+    });
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entriesObserved) {
+            entriesObserved.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                entry.target.classList.add('is-in');
+                io.unobserve(entry.target);
             });
         }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
-        Array.prototype.forEach.call(revealables, function (el) { io.observe(el); });
+        staged.forEach(function (el) {
+            if (enters.indexOf(el) !== -1) return;
+            io.observe(el);
+        });
     } else {
-        revealAll();
+        staged.forEach(function (el) { el.classList.add('is-in'); });
     }
+    setTimeout(function () {
+        document.querySelectorAll('.is-motion:not(.is-in)').forEach(function (el) {
+            var rect = el.getBoundingClientRect();
+            if (rect.top < window.innerHeight && rect.bottom > 0) el.classList.add('is-in');
+        });
+    }, 800);
 
     /* ---------- meters read their width from data-pct ---------- */
     document.querySelectorAll('.meter__fill[data-pct]').forEach(function (el) {
@@ -470,6 +534,10 @@
         acknowledge: acknowledge,
         openDialog: openDialog,
         parseStrictNumber: parseStrictNumber,
-        compareCell: compareCell
+        compareCell: compareCell,
+        enter: enter,
+        reveal: reveal,
+        section: section,
+        setState: setState
     };
 })();

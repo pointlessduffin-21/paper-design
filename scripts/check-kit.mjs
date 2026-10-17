@@ -22,7 +22,9 @@ const paperJs = read('plugins/paper-design/skills/paper-design/kit/paper.js');
 const scenes = read('plugins/paper-design/skills/paper-design/kit/scenes-kit.js');
 const preset = read('plugins/paper-design/skills/paper-design/kit/tailwind-preset.js');
 const template = read('plugins/paper-design/skills/paper-design/kit/template.html');
+const login = read('plugins/paper-design/skills/paper-design/kit/login.html');
 const fixture = read('plugins/paper-design/skills/paper-design/kit/fixture.html');
+const mainJs = read('plugins/paper-design/skills/paper-design/kit/main.js');
 const skill = read('plugins/paper-design/skills/paper-design/SKILL.md');
 const guidelines = read('plugins/paper-design/skills/paper-design/GUIDELINES.md');
 const readme = read('README.md');
@@ -68,12 +70,14 @@ test('motion policy can only strengthen reduced motion', () => {
     assert.equal(motionReduced(false, true), true);
 });
 
-test('stagger stays inside the first six items and 150ms', () => {
+test('stagger stays inside the first six items and 240ms', () => {
     assert.equal(staggerDelayMs(0, true), 0);
     assert.equal(staggerDelayMs(0, false), 0);
-    assert.equal(staggerDelayMs(5, false), 150);
+    assert.equal(staggerDelayMs(5, false), 200);
     assert.equal(staggerDelayMs(6, false), 0);
-    assert.ok(staggerDelayMs(3, false) <= 150);
+    assert.ok(staggerDelayMs(3, false) <= 240);
+    assert.match(paperJs, /STAGGER_STEP = 40/);
+    assert.match(paperJs, /STAGGER_CAP = 240/);
 });
 
 test('frame delta is clamped after a long gap', () => {
@@ -154,7 +158,13 @@ test('kit CSS keeps the motion, glass, and focus guards', () => {
     assert.doesNotMatch(css, /transition\s*:\s*all/);
     assert.doesNotMatch(css, /0\.001ms/);
     assert.match(paperCss, /prefers-reduced-motion:\s*reduce/);
-    assert.match(paperCss, /animation-name:\s*none\s*!important/);
+    const reducedAt = paperCss.indexOf('prefers-reduced-motion');
+    const forcedAt = paperCss.indexOf('forced-colors');
+    const reducedBlock = paperCss.slice(reducedAt, forcedAt);
+    assert.match(reducedBlock, /--paper-shift:\s*0px/);
+    assert.doesNotMatch(reducedBlock, /animation(?:-name)?\s*:\s*none/);
+    assert.match(paperCss, /@keyframes paper-in/);
+    assert.match(paperCss, /--paper-shift:\s*8px/);
     assert.match(paperCss, /forced-colors:\s*active/);
     assert.match(paperCss, /@media print/);
     assert.match(paperCss, /data-paper-motion/);
@@ -164,7 +174,9 @@ test('kit CSS keeps the motion, glass, and focus guards', () => {
     assert.match(paperCss, /line-height:\s*1\.5/);
     assert.match(paperCss, /min-height:\s*44px/);
     assert.match(paperCss, /--dur-press:\s*120ms/);
-    assert.match(paperCss, /--dur-enter:\s*240ms/);
+    assert.match(paperCss, /--dur-enter:\s*480ms/);
+    assert.match(paperCss, /--dur-section:\s*560ms/);
+    assert.match(preset, /enter:\s*'480ms'/);
     assert.match(toolCss, /@media print/);
     assert.match(toolCss, /forced-colors:\s*active/);
 });
@@ -178,6 +190,13 @@ test('paper.js honours reduced motion, dialogs, and idle input', () => {
     assert.match(paperJs, /ArrowRight/);
     assert.match(paperJs, /data-paper-sort/);
     assert.match(paperJs, /System reduced motion stays on/);
+    assert.match(paperJs, /enter:\s*enter/);
+    assert.match(paperJs, /reveal:\s*reveal/);
+    assert.match(paperJs, /section:\s*section/);
+    assert.match(paperJs, /setState:\s*setState/);
+    assert.match(paperJs, /data-paper-state/);
+    assert.doesNotMatch(paperJs, /revealAll/);
+    assert.match(paperJs, /limited to fades/);
 });
 
 test('scenes sleep, clamp delta, and dispose', () => {
@@ -189,6 +208,8 @@ test('scenes sleep, clamp delta, and dispose', () => {
     assert.match(scenes, /IDLE_GRACE = 1200/);
     assert.match(scenes, /prefers-reduced-motion/);
     assert.match(scenes, /data-paper-effects/);
+    assert.match(scenes, /dataset\.scene === 'hero'/);
+    assert.match(scenes, /FADE_HOLD = 520/);
 });
 
 test('pages expose the guidelines and have no duplicate ids or positive tabindex', () => {
@@ -197,18 +218,31 @@ test('pages expose the guidelines and have no duplicate ids or positive tabindex
     for (const doc of [skill, readme, claude]) {
         assert.match(doc, /GUIDELINES\.md/);
     }
-    for (const html of [template, fixture]) {
+    for (const html of [template, login, fixture]) {
         assert.doesNotMatch(html, /tabindex\s*=\s*["'][1-9]/i);
         const found = ids(html);
         assert.deepEqual(found.filter((id, index) => found.indexOf(id) !== index), []);
         for (const delay of html.matchAll(/--d:\s*([0-9.]+)(ms|s)/g)) {
             const ms = parseFloat(delay[1]) * (delay[2] === 's' ? 1000 : 1);
-            assert.ok(ms <= 150, delay[0]);
+            assert.ok(ms <= 240, delay[0]);
         }
+        assert.match(html, /data-enter/);
     }
+    for (const html of [template, login]) {
+        assert.match(html, /data-scene="hero"/);
+        assert.match(html, /data-section/);
+        assert.match(html, /class="btn/);
+    }
+    assert.match(login, /data-paper-state="password"/);
+    assert.match(mainJs, /mountScene/);
     assert.match(template, /class="skip"/);
     assert.match(template, /aria-hidden="true"/);
     assert.match(fixture, /data-paper-dialog="command-review"/);
     assert.match(fixture, /id="command-review"/);
+    assert.match(fixture, /data-section/);
     assert.match(fixture, /Unavailable/);
+    for (const doc of [skill, guidelines, claude]) {
+        assert.match(doc, /does not follow the skill/);
+        assert.match(doc, /Motion gap audit/);
+    }
 });

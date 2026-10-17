@@ -2,6 +2,24 @@
 
 > Reconstructed from scratch from the user's complete list of 31 principles. This is a new engineering guide, not a recovered original. Version 1.0 • 17 October 2026 • Audience: Claude Code, Codex, implementers, and reviewers.
 
+## Motion mandate (owner addendum, 17 October 2026)
+
+**Animation is mandatory.** Roel Abarca made this a non-negotiable release rule. It overrides every sentence below that treats motion as optional, tells an agent to omit an entrance, or sets `animation: none` / `transition: none` under `prefers-reduced-motion`.
+
+Every page or component an agent creates with the paper-design skill **must** include all of the following that apply:
+
+- an entrance or a scroll reveal (`data-enter`, `data-reveal`, `paper.enter`, `paper.reveal`)
+- a state transition (nav sheet, dialog, disclosure, `data-paper-state`, or `paper.setState`)
+- hover and press feedback on controls (color, border, or opacity; the press does not move the hit target)
+- a section transition where the page has more than one region (`data-section` or `paper.section`)
+- the Three.js scene on hero pages and login pages (`<canvas data-scene="hero">` mounted with `mountScene`)
+
+**A page shipped without animation does not follow the skill.**
+
+`prefers-reduced-motion: reduce`, and the in-app Reduce motion control, still apply. They switch motion to minimal, non-vestibular feedback: **fades and opacity**. They do not remove entrance, section, hover, or press feedback, and they do not set `animation: none`. Travel (`--paper-shift`) and nudge (`--paper-nudge`) become 0. Hero and login scenes fade the canvas in, then hold a still frame. Alarms, focus, and input are never delayed by an entrance. Content stays visible when JavaScript does not run.
+
+Kit durations that override the sample budgets in §5.5 and §5.9: press 120ms, state 160ms, entrance 480ms, section 560ms, stagger 40ms for the first six items with a 240ms cap. Those samples (including a 240ms entrance and `animation: none`) are not what ships.
+
 ## Navigation
 
 1. [Status, scope, and agent usage](#1-status-scope-and-how-an-agent-must-use-this-guide)
@@ -727,7 +745,7 @@ As a user-experience target, collect field **LCP ≤2.5s, INP ≤200ms, CLS ≤0
 
 Read `prefers-reduced-motion` at startup and react to changes. Offer an in-app Reduce motion setting that can strengthen the OS preference; do not silently override an OS request to reduce motion. Provide a separate Reduce visual effects setting for resource use and readability. Persist only permissible preferences. Forced colors and opaque fallback must retain focus, controls, and status meaning.
 
-Never flash alarms or use strobing as a safety cue. Provide pause controls for optional background playback; a paused telemetry presentation prominently says Paused and shows the last update time. Continue receiving and surfacing critical operational events under the application's safety requirements; do not silently freeze all alarms when pausing a chart. Include static and text alternatives for demonstrations. Reduced motion means an intentional usable state, not a 0.001ms animation that still launches the GPU pipeline.
+Never flash alarms or use strobing as a safety cue. Provide pause controls for optional background playback; a paused telemetry presentation prominently says Paused and shows the last update time. Continue receiving and surfacing critical operational events under the application's safety requirements; do not silently freeze all alarms when pausing a chart. Include static and text alternatives for demonstrations. Reduced motion means an intentional usable state, not a 0.001ms animation that still launches the GPU pipeline. It also does not mean deleting feedback: the [motion mandate](#motion-mandate-owner-addendum-17-october-2026) keeps fades and opacity.
 
 ## 6. React / TypeScript / CSS / Three.js implementation patterns
 
@@ -789,9 +807,11 @@ html { scroll-padding-top: 5rem; }
 .workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem); gap: 24px; }
 @media (max-width: 60rem) { .workspace { grid-template-columns: 1fr; } }
 @media (pointer: coarse) { button, .button-link { min-block-size: 48px; min-inline-size: 48px; } }
+/* Superseded by the motion mandate. Do not copy animation: none.
+   The kit zeroes --paper-shift and keeps the fade. */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .inspector, .decorative-reveal { transform: none; transition: none; animation: none; }
+  .inspector, .decorative-reveal { transform: none; }
 }
 @media (forced-colors: active) {
   .material-shell, .data-well { background: Canvas; color: CanvasText; border: 1px solid CanvasText; box-shadow: none; }
@@ -1173,18 +1193,18 @@ Use typography to create emphasis before adding containers. Favor persistent sec
 - [ ] Define data schema, units, freshness thresholds, quality semantics, permissions, interlocks, and command completion criteria with the domain contract.
 - [ ] Enumerate initial/loading, partial, empty, filtered-empty, error, stale, disconnected, unknown-outcome, unauthorized, and reduced-effects states.
 - [ ] Sketch desktop and narrow layouts using the repository's real material grammar; include focus order and command scope.
-- [ ] For each motion, write trigger, purpose, duration, interruption, reduced-motion alternative, and performance budget. Omit effects without a useful purpose.
+- [ ] For each motion, write trigger, purpose, duration, interruption, reduced-motion alternative (a fade or an opacity change, not removal), and performance budget. Entrance, state, hover/press, and section motion are required. Hero and login pages also mount the Three.js scene. A page or component with no animation does not follow the skill.
 
 ### During implementation
 
-- [ ] Build semantic behavior and final readable states first. Add material and optional motion without changing their meaning.
+- [ ] Build semantic behavior and final readable states first. Add the required motion without changing meaning.
 - [ ] Reuse shared tokens and primitives; avoid route-local copies of command state, freshness logic, dialog handling, or motion preference.
 - [ ] Keep exact values, units, warnings, and source context in DOM content. Canvas/SVG supplements do not replace accessible evidence.
 - [ ] Keep stable asset IDs through routing, sorting, filtering, charts, and twin selection. Do not store authority in DOM attributes.
 - [ ] Include input normalization and field errors, server rejection, request IDs, duplicate prevention, reconciliation, and partial outcomes.
 - [ ] Clean up listeners, timers, observers, media, loaders, render loops, and owned GPU resources. Test repeated mount/unmount.
 - [ ] Honor OS reduced motion, app reduced motion, reduced effects, forced colors, unavailable blur, and unavailable WebGL.
-- [ ] Keep decoration out of the critical path. Do not hide content until an animation or observer runs.
+- [ ] Keep alarms, focus, and input out of the entrance. Do not hide them until an animation or observer runs. Content without the `.js` class stays visible. Print forces entrances to their final opacity.
 
 ### Before review or release
 
@@ -1196,6 +1216,18 @@ Use typography to create emphasis before adding containers. Favor persistent sec
 - [ ] Review ethical risks: neutral framing, truthful progress, honest defaults, cancellation, draft control, and no pressure to rush.
 - [ ] Review no new confidential data exposure in telemetry, screenshots, exports, logs, or local storage.
 - [ ] Attach evidence and unresolved limitations. Do not claim WCAG conformance, field performance, or physical verification from a screenshot or automated scan alone.
+
+### Motion gap audit
+
+Reject the change when any applicable item is missing from a page or component created with this skill:
+
+- [ ] Entrance or scroll reveal (`data-enter`, `data-reveal`, `paper.enter`, or `paper.reveal`).
+- [ ] A state transition (nav sheet, dialog, disclosure, `data-paper-state`, or `paper.setState`).
+- [ ] Hover and press feedback on controls, using color, border, or opacity. Press does not move the hit target.
+- [ ] A section transition (`data-section` or `paper.section`) on a page with more than one region.
+- [ ] Hero and login pages mount `<canvas data-scene="hero">` through `mountScene`. Other scenes may sleep after input goes idle.
+- [ ] Reduced motion still fades. It does not set `animation: none` on the entrance, and a control still changes opacity or color on press.
+- [ ] Alarms and `[role="alert"]` are visible immediately. They are not held at `opacity: 0`.
 
 ### Paper material review
 
@@ -1212,7 +1244,8 @@ Task and operational scope:
 Repository components/tokens reused:
 Principles applied (numbers + rationale):
 Changed behavior, including unhappy paths:
-Motion purpose, budget, and reduced-motion result:
+Motion purpose, budget, and reduced-motion result (fade or opacity, not removed):
+Motion gap audit (entrance, state, hover/press, section, hero/login scene):
 Keyboard/touch/screen-reader evidence:
 Data freshness, command verification, and reconciliation evidence:
 Performance fixture/device/trace and results:

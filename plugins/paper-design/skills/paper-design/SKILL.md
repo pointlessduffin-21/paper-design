@@ -1,6 +1,6 @@
 ---
 name: paper-design
-description: The user's house design system ("Paper") — REQUIRED for every website, landing page, portfolio page, web app, dashboard, admin panel, internal tool or any other browser front end, whether new, being restyled, or getting a new page or component. Load it BEFORE writing or changing any HTML, CSS, JSX/TSX, Tailwind classes, component styling, colours, fonts, layout, or Three.js/WebGL visuals. Read GUIDELINES.md (next to this file) and follow it; it is the authoritative UI/UX design-engineering ruleset and wins on conflict. Then copy the kit (paper.css, tool.css, paper.js, scenes-kit.js, tailwind-preset.js, template.html) instead of re-deriving tokens.
+description: The user's house design system ("Paper") — REQUIRED for every website, landing page, portfolio page, web app, dashboard, admin panel, internal tool or any other browser front end, whether new, being restyled, or getting a new page or component. Load it BEFORE writing or changing any HTML, CSS, JSX/TSX, Tailwind classes, component styling, colours, fonts, layout, or Three.js/WebGL visuals. Animation is mandatory: entrance or scroll reveals, state transitions, hover and press feedback, section transitions, and a Three.js scene on hero and login pages. A page shipped without animation does not follow the skill. Reduced motion keeps fades and opacity. Read GUIDELINES.md (next to this file) and follow it; it is the authoritative UI/UX design-engineering ruleset and wins on conflict. Then copy the kit (paper.css, tool.css, paper.js, scenes-kit.js, tailwind-preset.js, template.html, login.html) instead of re-deriving tokens.
 ---
 
 # Paper — the house design system
@@ -40,7 +40,7 @@ behaviour on top:
 |---|---|
 | Frosted glass / `backdrop-filter` | Solid `--paper` / `--paper-hi` sheets. Blur is gone. |
 | Body 17px / 1.6 | 16px / 1.5. Inputs stay 16px. |
-| Reveals and the hero started at opacity 0 | Content is visible without JS or observers. `.rise` is an optional 6px / 240ms decorative settle, never for headings, alerts, or controls. |
+| Reveals and reduced motion removed animation | Animation is mandatory. See Motion below. Reduced motion fades; it does not set `animation: none`. |
 | Number counters tweened through fake values | The authored number stays. Do not invent intermediate readings. |
 | Live-dot pulse | Static dot plus words. No continuous status pulse. |
 | `--ink-3 #8a857a` (3.29:1) | `#6b675f`, same hue, 4.5:1 on paper-lo. |
@@ -48,7 +48,7 @@ behaviour on top:
 | `--down #b5afa3` (1.95:1) | `#88837a`, 3:1 as a non-text mark. |
 | 36px tool buttons | Standalone controls are at least 44px, 48px on coarse pointers. |
 | Sidebar `display: none` below 1000px | The sidebar stacks in document order on narrow screens. |
-| Scene loop ran forever | It sleeps 1.2s after the last scroll or pointer move. Reduced motion freezes time. `dispose()` releases the context. A second WebGL context is refused. |
+| Scene loop ran forever | Hero and login (`data-scene="hero"`) keep moving while the tab is visible. Other scenes sleep 1.2s after the last scroll or pointer move. Reduced motion fades the canvas in and holds a still frame. `dispose()` releases the context. A second WebGL context is refused. |
 
 Muted labels, status text, and control edges were darkened only as far as WCAG 2.2 AA contrast required. No new hues were added.
 
@@ -62,13 +62,15 @@ re-type the tokens by hand.
 | `GUIDELINES.md` | Authoritative rules. Read before implementing. Not copied into every site. |
 | `paper.css` | Tokens, base, static paper grain, nav + mobile sheet, layout, type, buttons, cards, chips, status dots, frames, hero, stats, grid, CTA, footer, reduced motion, forced colors, print |
 | `tool.css` | Web apps: app shell + sidebar, workspace/inspector, panes, metrics, toolbar, segmented control, tabs, forms, tables (stack to cards on phones), key/value, badges, banners, receipts, empty states, log, `<dialog>` (bottom sheet on phones), toasts, skeletons |
-| `paper.js` | Nav sheet (Escape, focus trap, inert page, breakpoint unlocks scroll), stagger cap, reduced-motion and reduced-effects settings, dialog focus return, form errors, truthful sort, tabs, footer year. No dependencies |
+| `paper.js` | Nav sheet (Escape, focus trap, inert page, breakpoint unlocks scroll), mandatory motion helpers (`paper.enter`, `paper.reveal`, `paper.section`, `paper.setState`), stagger cap, reduced-motion and reduced-effects settings, dialog focus return, form errors, truthful sort, tabs, footer year. No dependencies |
 | `paper-policy.mjs` | Tested motion, stagger, phase-label, and strict numeric sort helpers. `paper.js` mirrors the marked functions |
-| `scenes-kit.js` | `mountScene(canvas, make)`: the Three.js paper runtime plus helpers (`paperMaterial`, `addLights`, `addGround`) and the reference `field` scene. Returns `{ dispose, wake }` |
+| `scenes-kit.js` | `mountScene(canvas, make)`: the Three.js paper runtime plus helpers (`paperMaterial`, `addLights`, `addGround`) and the reference `field` scene. Returns `{ dispose, wake }`. Three.js is vendored in `vendor/` |
 | `tailwind-preset.js` | The same tokens for Tailwind v3 projects (v4: map the `:root` block under `@theme`) |
-| `template.html` | A marketing starter page |
-| `main.js` | Empty scene entry so `template.html` does not 404. Replace it when a page mounts Three.js |
-| `fixture.html` | An operational ledger fixture: queue, inspector, dialog, draft, receipt |
+| `template.html` | Marketing starter. Entrance, section, hover/press, nav state, and the hero scene are already on |
+| `login.html` | Sign-in starter with the same motion, plus a password-visibility state, and `data-scene="hero"` |
+| `main.js` | Mounts the field scene for `template.html` and `login.html` |
+| `fixture.html` | Operational ledger fixture: queue, inspector, dialog, draft, receipt. The critical queue is not held for an entrance |
+| `vendor/` | Three.js r0.170.0 (`three.module.min.js`) plus the two addons the field scene uses. MIT |
 
 In React/Vue/Svelte projects, import `paper.css` (and `tool.css`) once at the root and use the class
 names. Or use the Tailwind preset with the same values. Don't fork the palette into a JS theme
@@ -91,7 +93,7 @@ Spacing scale: 4, 8, 12, 16, 24, 32, 48px (`--space-1` … `--space-7`). Gaps in
 
 Radius 18px (cards), 12px (inputs, small panels), 999px (buttons, chips). Entry ease
 `cubic-bezier(.2,.8,.2,1)` (`--ease-enter`), state ease `cubic-bezier(.4,0,.2,1)` (`--ease-state`).
-Durations: press 120ms, disclosure/state 160ms, decorative enter ≤240ms. Never `transition: all`.
+Durations: press 120ms, state 160ms, entrance 480ms, section 560ms. Never `transition: all`.
 Light only: there is no dark mode unless the user asks for one.
 
 ## Type
@@ -126,16 +128,48 @@ Light only: there is no dark mode unless the user asks for one.
 
 ## Motion
 
-Write the purpose before adding any effect. If the only question is "does this look impressive?", leave it out.
+**Animation is mandatory.** A page or component shipped without it does not follow the skill. This matches the motion mandate at the top of `GUIDELINES.md` and overrides any older line that called motion optional or turned it off under reduced motion.
+
+Every page includes:
+
+- an entrance or scroll reveal
+- a state transition
+- hover and press feedback
+- a section transition when the page has more than one region
+- the Three.js scene on hero and login pages
+
+Drop-in helpers on `window.paper` after `paper.js` loads:
+
+```js
+paper.enter(el);          // play the entrance now
+paper.reveal(el);         // same fade for a node that just appeared
+paper.section(el);        // data-section, longer fade
+paper.setState(el, 'on'); // data-state, color/opacity transition
+```
+
+Markup the kit already plays: `data-enter` (on load), `data-reveal` (on scroll), `data-section` (longer scroll fade), `data-paper-state` (toggles `data-state`; `data-paper-state="password"` also shows the controlled field). `data-motion="off"` opts a subtree out. Alarms (`.status-critical`, `.banner`, `[role="alert"]`) are never held at opacity 0.
 
 - Local acknowledgement is immediate: `data-paper-ack="Requesting"` or `paper.acknowledge(button)`.
 - `data-paper-once` ignores a second activation while `aria-busy` is set.
-- Decorative `.rise` is at most 6px and 240ms. Stagger at most the first six items, 30ms apart, 150ms total. `paper.js` caps authored `--d` delays.
-- `prefers-reduced-motion: reduce` removes animation and transition. It does not run a 1ms animation.
-- An in-app control `[data-paper-reduce-motion]` sets `data-paper-motion="reduce"` and `localStorage` key `paper-reduce-motion`. It can strengthen the OS setting. It cannot turn motion back on while the OS asks for less. `[data-paper-reduce-effects]` is separate (`paper-reduce-effects`).
+- Stagger at most the first six items, 40ms apart, 240ms cap. `paper.js` caps authored `--d` delays.
+- Hover and press use color, border, or opacity (`--dur-press` 120ms). The arrow nudge is `--paper-nudge` (3px) and becomes 0 under reduced motion. Press does not move the hit target.
+- `prefers-reduced-motion: reduce` and `[data-paper-reduce-motion]` keep the fades and opacity feedback. They set `--paper-shift` and `--paper-nudge` to 0. They do not set `animation: none`.
+- An in-app control `[data-paper-reduce-motion]` sets `data-paper-motion="reduce"` and `localStorage` key `paper-reduce-motion`. It can strengthen the OS setting. It cannot turn motion back on while the OS asks for less. `[data-paper-reduce-effects]` is separate (`paper-reduce-effects`) and hides grain and the canvas.
 - Query `?motion=reduce` and `?effects=reduce` apply for that load.
 - One polite live region, `#paper-status`. Do not put `aria-live` on a fast table.
-- The field scene sleeps when idle. Reduced motion freezes scene time; scroll may still update the camera, then the loop sleeps. Do not add a spring library for a hover.
+- Hero and login canvases use `data-scene="hero"` so the field keeps moving while the tab is visible. Other scenes sleep 1.2s after the last scroll or pointer move. Reduced motion fades the canvas in, then holds a still frame. Do not add a spring library for a hover.
+
+### Motion gap audit
+
+Before shipping, confirm each item that applies. A miss means the page does not follow the skill.
+
+- Entrance or scroll reveal is present.
+- A state transition is present (sheet, dialog, disclosure, or `data-paper-state`).
+- Controls change color, border, or opacity on hover and press.
+- A multi-region page has a section transition.
+- Hero and login pages mount `<canvas data-scene="hero">`.
+- With reduced motion on, entrances still fade and presses still change opacity or color.
+- Alarms are visible immediately, including with JavaScript off.
 
 ## Mobile — design it first
 
@@ -157,7 +191,7 @@ Every marketing site gets a 3D layer unless the user says otherwise; tools get i
   PMREM. Mostly paper-white and warm-grey objects, a few ink ones, and ~1–3% vermilion.
   White-on-white gets its depth from a strong key light and **soft shadows onto a `ShadowMaterial`
   ground**, not from outlines.
-- **Motion** while someone is scrolling or moving the pointer, then the loop sleeps. Nothing flashes. Scroll progress (`state.hp` hero, `state.sp` page) may ease the camera. Do not capture the wheel.
+- **Motion** on hero and login scenes (`data-scene="hero"`) continues while the tab is visible. Every other scene moves while someone is scrolling or moving the pointer, then the loop sleeps. Nothing flashes. Scroll progress (`state.hp` hero, `state.sp` page) may ease the camera. Do not capture the wheel.
 - **Composition:** on desktop the object sits beside the copy, not behind it. On phones it goes in
   the band below the hero text, and the background dims as you scroll past the hero. Text must
   never sit on a busy part of the scene.
@@ -165,13 +199,12 @@ Every marketing site gets a 3D layer unless the user says otherwise; tools get i
   - No WebGL, or a lost context → the canvas stays hidden, `data-scene-state="unavailable"`, and `[data-scene-fallback]` is shown if present. The page is complete.
   - Phones, coarse pointers and ≤4 cores → standard material, 1024 shadow maps, fewer instances, DPR ≤ 1.5.
   - A quality ladder steps down when mean frame time exceeds 33ms across a 2s window, and stops if a cut does not help. `data-scene-quality` becomes `reduced` or `minimal`.
-  - `prefers-reduced-motion` or `data-paper-motion="reduce"` → time stops; honour it live.
+  - `prefers-reduced-motion` or `data-paper-motion="reduce"` → scene time stops and the canvas fades to a still frame. Page motion keeps its fades. Honour both live.
   - `data-paper-effects="reduce"` → canvas hidden, shadows off, loop stopped.
   - Hidden tab or faded canvas → the loop sleeps. Frame deltas are clamped to 50ms.
   - Two WebGL contexts must never both render. The second `mountScene` call is skipped.
   - Call `dispose()` on unmount.
-- **Delivery:** vendor Three.js with the project (a `vendor/three/` directory, or npm with a
-  bundler). No CDN importmaps: they force `script-src 'unsafe-inline'`.
+- **Delivery:** Three.js is already vendored in `kit/vendor/` (`three.module.min.js`, MIT, plus `RoomEnvironment.js` and `RoundedBoxGeometry.js`). `scenes-kit.js` imports those relative paths. No CDN import map.
 - One module per page scene.
 
 ## Accessibility and security baseline
@@ -193,8 +226,7 @@ Target WCAG 2.2 AA. The kit is not a conformance claim.
    imports, and remove the old dark/neon tokens rather than aliasing them.
 2. Map the old components onto the kit's classes, or restyle the components to the kit's rules.
    Keep behaviour, IDs and data hooks untouched.
-3. Replace decorative effects (glows, scanlines, custom cursors, preloaders, typewriters, glass blur) with
-   nothing, or with a paper Three.js scene that sleeps when idle.
+3. Replace decorative effects (glows, scanlines, custom cursors, preloaders, typewriters, glass blur) with the required Paper motion: entrances, state, hover/press, section transitions, and a paper Three.js scene on hero and login pages. Non-hero scenes sleep when idle.
 4. Check at 320/390/1280px with keyboard only, with reduced motion, and with JS or WebGL disabled: no horizontal scroll and no console errors.
 
 ## What this kit does not pretend to be

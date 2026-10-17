@@ -31,7 +31,8 @@ module.exports = {
             transitionDuration: {
                 press: '120ms',
                 state: '160ms',
-                enter: '240ms'
+                enter: '480ms',
+                section: '560ms'
             },
             letterSpacing: { label: '.12em' }
         }

@@ -16,10 +16,11 @@ export function motionReduced(os, app) {
     return Boolean(os || app);
 }
 
-/** First six non-critical items, 30ms apart, never past 150ms. */
+/** First six non-critical items, 40ms apart, never past 240ms.
+    Matches paper.js STAGGER_STEP / STAGGER_CAP. */
 export function staggerDelayMs(index, critical) {
     if (critical || index < 0 || index >= 6) return 0;
-    return Math.min(150, index * 30);
+    return Math.min(240, index * 40);
 }
 
 /** Clamp a rAF delta after backgrounding. 50ms matches the twin helper. */

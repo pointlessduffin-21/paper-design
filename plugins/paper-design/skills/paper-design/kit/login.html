@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Sign in — Project</title>
+    <meta name="description" content="Sign in. This template does not create a session.">
+    <meta name="theme-color" content="#f5f2eb">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="paper.css">
+    <link rel="stylesheet" href="tool.css">
+</head>
+<body>
+    <a class="skip" href="#main">Skip to content</a>
+    <div id="paper-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+    <canvas class="scene" id="scene" data-scene="hero" aria-hidden="true"></canvas>
+
+    <header class="nav" id="nav">
+        <a class="nav__logo" href="template.html">Name <small>tagline</small></a>
+        <button class="nav__toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navLinks"
+            aria-label="Open menu"><span></span><span></span></button>
+        <nav class="nav__links" id="navLinks" aria-label="Primary">
+            <a href="template.html">Home</a>
+            <a href="login.html" aria-current="page">Sign in</a>
+            <a class="nav__cta" href="mailto:hello@example.com">Get in touch</a>
+        </nav>
+    </header>
+
+    <main id="main">
+        <section class="page-hero page-hero--stage">
+            <div class="wrap login-grid">
+                <div>
+                    <p class="eyebrow" data-enter>Account</p>
+                    <h1 class="display" data-enter>Sign in to <em>the sheet</em></h1>
+                    <p class="lead" data-enter>Use the address you already have. This template does not create a session.</p>
+                    <p data-scene-fallback hidden>The paper scene is unavailable in this browser. Sign-in still works.</p>
+                </div>
+                <form class="pane login-card" data-enter data-paper-form data-paper-local aria-labelledby="login-title">
+                    <h2 class="pane__title" id="login-title">Continue</h2>
+                    <div class="error-summary" hidden>
+                        <strong>Check the highlighted fields.</strong>
+                        <ul>
+                            <li><a href="#email">Enter an email address.</a></li>
+                            <li><a href="#password">Enter a password.</a></li>
+                        </ul>
+                    </div>
+                    <div class="field">
+                        <label class="label" for="email">Email</label>
+                        <input class="input" id="email" name="email" type="email" autocomplete="username" required aria-describedby="email-error">
+                        <p class="error" id="email-error" hidden>Enter an email address.</p>
+                    </div>
+                    <div class="field">
+                        <label class="label" for="password">Password</label>
+                        <input class="input" id="password" name="password" type="password" autocomplete="current-password" required minlength="8" aria-describedby="password-hint password-error">
+                        <p class="hint" id="password-hint">At least 8 characters. Nothing on this page is sent.</p>
+                        <p class="error" id="password-error" hidden>Enter a password.</p>
+                    </div>
+                    <div class="action-rule">
+                        <button type="submit" class="btn btn--ink">Continue <span class="arrow">→</span></button>
+                        <button type="button" class="btn" data-paper-state="password" aria-controls="password" aria-pressed="false">Show password</button>
+                    </div>
+                    <p data-paper-draft-note hidden>Draft saved at <time></time>. Nothing was sent. This template does not sign anyone in.</p>
+                </form>
+            </div>
+        </section>
+
+        <section class="section" data-section>
+            <div class="wrap">
+                <div class="section-head section-head--split">
+                    <div>
+                        <p class="eyebrow" data-reveal>After this page</p>
+                        <h2 class="h2" data-reveal>A session is a <em>verified</em> state</h2>
+                    </div>
+                    <p class="lead" data-reveal>Submitting the form on this template only keeps a note on the page. A real product still has to reconcile the request.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="wrap">
+            <span>© <span id="year">2026</span> Name</span>
+            <nav aria-label="Footer"><a href="template.html">Home</a></nav>
+        </div>
+    </footer>
+
+    <script src="paper.js"></script>
+    <script type="module" src="main.js"></script>
+</body>
+</html>
